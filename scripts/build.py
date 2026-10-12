@@ -169,7 +169,7 @@ REVIEWS_API = site.get("reviews_endpoint", "").strip()
 
 
 def reviews_script():
-    """感想機能の読み込み。site.json の reviews_endpoint が空なら何も出さない。"""
+    """星評価の読み込み。site.json の reviews_endpoint が空なら何も出さない。"""
     if not REVIEWS_API:
         return ""
     return f"""
@@ -193,15 +193,10 @@ def reviews_section(s):
           <legend>この作品の評価</legend>
           <div class="star-row">{radios}</div>
         </fieldset>
-        <label class="review-comment">
-          <span>感想（任意）</span>
-          <textarea name="comment" rows="4" maxlength="1000" placeholder="ひとことでも"></textarea>
-        </label>
         <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
         <button type="submit">送信する</button>
       </form>
       <p class="review-status" aria-live="polite"></p>
-      <ul class="review-list" hidden></ul>
     </section>"""
 
 
