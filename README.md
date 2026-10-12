@@ -73,6 +73,8 @@
 6. 権限の確認が出たら許可します（「このアプリは Google で確認されていません」と出たら「詳細 → （安全ではないページ）に移動」）。
 7. 表示された「ウェブアプリの URL」（`https://script.google.com/macros/s/…/exec`）を `site.json` の `reviews_endpoint` に入れて `main` に反映します。
 
+スマホなどで「拡張機能 → Apps Script」が開けないときは、[script.google.com](https://script.google.com/home/projects/create) で新しいプロジェクトを作り、手順3以降を行っても動きます。その場合、最初の評価が届いたときに「眠人ショートショート 星評価」というスプレッドシートが Google ドライブに自動で作られます。
+
 ### 評価の管理
 
 - スプレッドシートの「評価」シートに1件ずつ行が増えます。

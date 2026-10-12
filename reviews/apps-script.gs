@@ -3,6 +3,8 @@
  * 設定手順は README の「星評価」を参照。
  *
  * シート「評価」の各行が1件の評価。「無効」にチェックを入れた行は平均に入らなくなる。
+ * スプレッドシートの「拡張機能 → Apps Script」から作っても、script.google.com で単独のプロジェクトとして作ってもよい。
+ * 単独の場合は、最初の評価が届いたときに「眠人ショートショート 星評価」というスプレッドシートを自動で作る。
  */
 var SHEET_NAME = '評価';
 var HEADER = ['日時', '作品', '星', '無効'];
@@ -64,8 +66,19 @@ function validRows_() {
     });
 }
 
-function sheet_() {
+function spreadsheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (ss) return ss;
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty('SHEET_ID');
+  if (id) return SpreadsheetApp.openById(id);
+  ss = SpreadsheetApp.create('眠人ショートショート 星評価');
+  props.setProperty('SHEET_ID', ss.getId());
+  return ss;
+}
+
+function sheet_() {
+  var ss = spreadsheet_();
   var sh = ss.getSheetByName(SHEET_NAME);
   if (!sh) {
     sh = ss.insertSheet(SHEET_NAME);
