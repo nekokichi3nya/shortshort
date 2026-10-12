@@ -42,6 +42,8 @@
 | `title` | サイト名 |
 | `description` | サイトの説明（トップページの紹介文・検索結果） |
 | `author` | ペンネーム |
+| `author_bio` | プロフィールページ（`/about/`）の自己紹介文 |
+| `author_x` | X（旧Twitter）のアカウント名（`@名前` でもURLでも可）。入れるとプロフィールページにXへのリンクが出ます |
 | `url` | 公開URL（独自ドメインにした場合はここを変更） |
 | `google_site_verification` | Google Search Console の確認コード |
 | `reviews_endpoint` | 感想・星評価の保存先（下記）。空のあいだは感想欄を出しません |
