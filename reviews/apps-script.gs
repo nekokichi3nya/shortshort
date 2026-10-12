@@ -2,19 +2,22 @@
  * 星評価の受け口（Google スプレッドシート + Apps Script）。
  * 設定手順は README の「星評価」を参照。
  *
- * シート「評価」の各行が1件の評価。「無効」にチェックを入れた行は平均に入らなくなる。
+ * シート「評価」の各行が1件の評価。「無効」にチェックを入れた行は平均にも感想の数にも入らなくなる。
  * スプレッドシートの「拡張機能 → Apps Script」から作っても、script.google.com で単独のプロジェクトとして作ってもよい。
  * 単独の場合は、最初の評価が届いたときに「眠人ショートショート 星評価」というスプレッドシートを自動で作る。
  */
 var SHEET_NAME = '評価';
-var HEADER = ['日時', '作品', '星', '無効'];
+var HEADER = ['日時', '作品', '星', '無効', '感想'];
+// 選べる感想（サイト側の scripts/build.py の REACTIONS と同じにする）
+var REACTIONS = ['ゾッとした', '切なかった', 'オチにやられた', '考えさせられた', 'ありそうで怖い', 'また読みたい'];
 // 荒らし対策：サイト全体で10分間に受け付ける評価の上限
 var MAX_POSTS_PER_10MIN = 30;
 
 function doGet(e) {
   var slug = (e && e.parameter && e.parameter.slug) || '';
+  var rows = validRows_();
   var summary = {};
-  validRows_().forEach(function (r) {
+  rows.forEach(function (r) {
     var s = summary[r.slug] || (summary[r.slug] = { sum: 0, count: 0 });
     s.sum += r.rating;
     s.count++;
@@ -25,7 +28,12 @@ function doGet(e) {
   });
   if (!slug) return json_({ ok: true, summary: summary });
   var mine = summary[slug] || { avg: 0, count: 0 };
-  return json_({ ok: true, avg: mine.avg, count: mine.count });
+  var reactions = {};
+  rows.forEach(function (r) {
+    if (r.slug !== slug) return;
+    r.reactions.forEach(function (x) { reactions[x] = (reactions[x] || 0) + 1; });
+  });
+  return json_({ ok: true, avg: mine.avg, count: mine.count, reactions: reactions });
 }
 
 function doPost(e) {
@@ -37,6 +45,9 @@ function doPost(e) {
   if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(slug) || !(rating >= 1 && rating <= 5 && rating % 1 === 0)) {
     return json_({ ok: false, error: 'invalid' });
   }
+  var picked = String(p.reactions || '').split(',').filter(function (x, i, a) {
+    return REACTIONS.indexOf(x) >= 0 && a.indexOf(x) === i;
+  });
   var lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
@@ -47,7 +58,7 @@ function doPost(e) {
     cache.put(key, String(n + 1), 700);
 
     var sh = sheet_();
-    sh.appendRow([new Date(), slug, rating, false]);
+    sh.appendRow([new Date(), slug, rating, false, picked.join('、')]);
     sh.getRange(sh.getLastRow(), 4).insertCheckboxes();
   } finally {
     lock.releaseLock();
@@ -62,7 +73,11 @@ function validRows_() {
   return sh.getRange(2, 1, last - 1, HEADER.length).getValues()
     .filter(function (v) { return v[3] !== true && v[1] && Number(v[2]) >= 1; })
     .map(function (v) {
-      return { slug: String(v[1]), rating: Math.min(5, Math.max(1, Math.round(Number(v[2])))) };
+      return {
+        slug: String(v[1]),
+        rating: Math.min(5, Math.max(1, Math.round(Number(v[2])))),
+        reactions: String(v[4] || '').split('、').filter(function (x) { return REACTIONS.indexOf(x) >= 0; }),
+      };
     });
 }
 
@@ -84,6 +99,9 @@ function sheet_() {
     sh = ss.insertSheet(SHEET_NAME);
     sh.appendRow(HEADER);
     sh.setFrozenRows(1);
+  } else if (sh.getRange(1, HEADER.length).getValue() !== HEADER[HEADER.length - 1]) {
+    // 感想の列がなかった頃のシートに見出しを足す
+    sh.getRange(1, HEADER.length).setValue(HEADER[HEADER.length - 1]);
   }
   return sh;
 }
