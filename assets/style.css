@@ -221,6 +221,30 @@ a { color: var(--accent); }
 }
 .chip:hover { border-color: var(--line-strong); color: var(--text); }
 .chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); box-shadow: var(--glow); }
+.picks { display: flex; flex-wrap: wrap; gap: 8px 12px; }
+.pick[hidden] { display: none; }
+.pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel);
+}
+.pick:focus-within { border-color: var(--line-strong); }
+.pick .mono { color: var(--accent); font-size: 11px; }
+.pick select {
+  padding: 8px 4px;
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+.pick option { background: var(--bg-2); color: var(--text); }
+.card-reaction { margin-left: 10px; color: #e2d4ff; }
 .finder-status { display: flex; align-items: center; gap: 10px; min-height: 1em; margin: 0; color: var(--text-dim); font-size: 12px; }
 .finder-status:empty { display: none; }
 .chip-tag { color: var(--accent-2); border-color: var(--accent-2); font-family: var(--sans); letter-spacing: 0; }
