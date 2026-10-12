@@ -18,22 +18,19 @@ function doGet(e) {
   var rows = validRows_();
   var summary = {};
   rows.forEach(function (r) {
-    var s = summary[r.slug] || (summary[r.slug] = { sum: 0, count: 0 });
+    var s = summary[r.slug] || (summary[r.slug] = { sum: 0, count: 0, reactions: {} });
     s.sum += r.rating;
     s.count++;
+    r.reactions.forEach(function (x) { s.reactions[x] = (s.reactions[x] || 0) + 1; });
   });
   Object.keys(summary).forEach(function (k) {
     var s = summary[k];
-    summary[k] = { avg: Math.round(s.sum / s.count * 10) / 10, count: s.count };
+    summary[k] = { avg: Math.round(s.sum / s.count * 10) / 10, count: s.count, reactions: s.reactions };
   });
+  // 一覧ページ用：作品ごとの平均・件数・感想の数
   if (!slug) return json_({ ok: true, summary: summary });
-  var mine = summary[slug] || { avg: 0, count: 0 };
-  var reactions = {};
-  rows.forEach(function (r) {
-    if (r.slug !== slug) return;
-    r.reactions.forEach(function (x) { reactions[x] = (reactions[x] || 0) + 1; });
-  });
-  return json_({ ok: true, avg: mine.avg, count: mine.count, reactions: reactions });
+  var mine = summary[slug] || { avg: 0, count: 0, reactions: {} };
+  return json_({ ok: true, avg: mine.avg, count: mine.count, reactions: mine.reactions });
 }
 
 function doPost(e) {

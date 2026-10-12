@@ -313,7 +313,7 @@ def build():
           <span class="mono card-no">No.{s['no']}</span>
           <h2 class="card-title">{esc(s['title'])}</h2>
           <p class="card-desc">{esc(s['description'])}</p>{labels}
-          <span class="mono card-meta">{esc(s['date'])} · {s['chars']:,} 字<span class="card-rating" data-rating-for="{esc(s['slug'])}" hidden></span></span>
+          <span class="mono card-meta">{esc(s['date'])} · {s['chars']:,} 字<span class="card-rating" data-rating-for="{esc(s['slug'])}" hidden></span><span class="card-reaction" hidden></span></span>
         </a>
       </li>"""
 
@@ -324,6 +324,16 @@ def build():
       <div class="chips" role="group" aria-label="ジャンルで絞り込む">
         <button type="button" class="chip" data-genre="" aria-pressed="true">すべて</button>{chips}
       </div>""" if genres else ""
+    # 評価・感想での並べ替えと絞り込み（評価機能があるときだけ）
+    rank_bar = ""
+    if REVIEWS_API:
+        r_opts = "".join(f'<option value="{esc(r)}">{esc(r)}</option>' for r in REACTIONS)
+        rank_bar = f"""
+      <div class="picks">
+        <label class="pick"><span class="mono">SORT</span><select id="sort"><option value="">新着順</option><option value="avg">評価が高い順</option><option value="count">評価が多い順</option></select></label>
+        <label class="pick"><span class="mono">STARS</span><select id="min"><option value="">指定なし</option><option value="4">★4以上</option><option value="3">★3以上</option></select></label>
+        <label class="pick" id="pick-reaction" hidden><span class="mono">感想</span><select id="r"><option value="">指定なし</option>{r_opts}</select></label>
+      </div>"""
     body = f"""  <main class="home">
     <section class="hero">
       <p class="mono hero-eyebrow">// ARCHIVE ONLINE · {len(stories)} FILES</p>
@@ -335,7 +345,7 @@ def build():
       <label class="search">
         <span class="mono search-label">SEARCH</span>
         <input type="search" id="q" name="q" placeholder="タイトル・本文・タグで検索" autocomplete="off">
-      </label>{genre_bar}
+      </label>{genre_bar}{rank_bar}
       <p class="mono finder-status" id="finder-status" aria-live="polite"></p>
     </form>
     <ul class="cards">
@@ -389,6 +399,16 @@ def build():
                         body=body, og_type="profile", jsonld=jsonld), encoding="utf-8")
 
     # 404
+    # 評価・感想での並べ替えと絞り込み（評価機能があるときだけ）
+    rank_bar = ""
+    if REVIEWS_API:
+        r_opts = "".join(f'<option value="{esc(r)}">{esc(r)}</option>' for r in REACTIONS)
+        rank_bar = f"""
+      <div class="picks">
+        <label class="pick"><span class="mono">SORT</span><select id="sort"><option value="">新着順</option><option value="avg">評価が高い順</option><option value="count">評価が多い順</option></select></label>
+        <label class="pick"><span class="mono">STARS</span><select id="min"><option value="">指定なし</option><option value="4">★4以上</option><option value="3">★3以上</option></select></label>
+        <label class="pick" id="pick-reaction" hidden><span class="mono">感想</span><select id="r"><option value="">指定なし</option>{r_opts}</select></label>
+      </div>"""
     body = f"""  <main class="home">
     <section class="hero">
       <p class="mono hero-eyebrow">// ERROR 404</p>

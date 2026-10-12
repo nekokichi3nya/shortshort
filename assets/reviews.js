@@ -14,11 +14,13 @@
     return "平均評価 5点中" + avg.toFixed(1) + "、" + count + "件";
   }
 
-  // 一覧ページ：カードに平均評価を出す
+  // 一覧ページ：カードに平均評価を出し、並べ替え・絞り込み（search.js）に集計を渡す
   var cardSpots = document.querySelectorAll("[data-rating-for]");
   if (cardSpots.length) {
     get().then(function (d) {
       if (!d.ok) return;
+      window.RATINGS = d.summary;
+      if (window.finderRefresh) window.finderRefresh();
       Array.prototype.forEach.call(cardSpots, function (el) {
         var s = d.summary[el.dataset.ratingFor];
         if (!s) return;
