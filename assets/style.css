@@ -361,6 +361,8 @@ a.label:hover { border-color: var(--line-strong); color: var(--text); }
 }
 .profile-works a:hover { color: var(--accent); }
 .profile-works .mono { color: var(--text-dim); font-size: 12px; flex: none; }
+.profile-work-title { flex: 1; min-width: 0; }
+.profile-works .profile-work-date { font-size: 11px; }
 
 /* 星評価 */
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
