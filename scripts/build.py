@@ -41,6 +41,7 @@ def parse_story(path):
         lines = lines[1:]
     meta.setdefault("title", path.stem)
     meta.setdefault("date", git_date(path))
+    meta["added"] = git_added(path)
     meta["slug"] = meta.get("slug") or path.stem
     body = "\n".join(lines).strip("\n")
     meta["chars"] = len(re.sub(r"\s", "", body))
@@ -60,6 +61,20 @@ def git_date(path):
     except (subprocess.CalledProcessError, FileNotFoundError):
         pass
     return datetime.date.today().isoformat()
+
+
+def git_added(path):
+    """リポジトリに初めて追加されたコミットの時刻（UNIX秒）。同じ掲載日の作品を掲載順に並べるのに使う。"""
+    try:
+        out = subprocess.run(
+            ["git", "log", "--diff-filter=A", "--format=%ct", "--", str(path)],
+            cwd=ROOT, capture_output=True, text=True, check=True,
+        ).stdout.split()
+        if out:
+            return int(out[-1])
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+    return float("inf")  # 未コミットの新作は最後
 
 
 def excerpt(body, n=90):
@@ -150,8 +165,8 @@ def build():
     (OUT / ".nojekyll").write_text("")
 
     stories = [parse_story(p) for p in sorted(STORIES.glob("*.md"))]
-    # 古い順に通し番号を振り、一覧は新しい順に並べる
-    stories.sort(key=lambda s: (s["date"], s["slug"]))
+    # 掲載日（同日なら掲載順）の古い順に通し番号を振り、一覧は新しい順に並べる
+    stories.sort(key=lambda s: (s["date"], s["added"], s["slug"]))
     for i, s in enumerate(stories, 1):
         s["no"] = f"{i:03d}"
     newest_first = list(reversed(stories))
