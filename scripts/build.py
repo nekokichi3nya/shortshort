@@ -16,8 +16,6 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "_site"
 STORIES = ROOT / "stories"
 ASSETS = ROOT / "assets"
-IMAGES = ROOT / "images"
-IMAGE_EXTS = (".svg", ".png", ".jpg", ".jpeg", ".webp", ".gif")
 
 site = json.loads((ROOT / "site.json").read_text(encoding="utf-8"))
 BASE = site["url"].rstrip("/")
@@ -53,27 +51,7 @@ def parse_story(path):
     meta["chars"] = len(meta["text"])
     meta.setdefault("description", excerpt(body))
     meta["html"] = render_body(body)
-    meta["image"] = story_image(meta)
-    meta["image_alt"] = meta.get("image_alt", "")
     return meta
-
-
-def story_image(meta):
-    """front matter の image（images/ からの相対パスか URL）。無ければ images/<slug>.* を自動で使う。"""
-    src = meta.get("image", "")
-    if src:
-        if re.match(r"^https?://", src):
-            return src
-        src = src.removeprefix("/").removeprefix("images/")
-        return f"{BASE_PATH}/images/{src}"
-    for ext in IMAGE_EXTS:
-        if (IMAGES / f"{meta['slug']}{ext}").exists():
-            return f"{BASE_PATH}/images/{meta['slug']}{ext}"
-    return ""
-
-
-def absolute(src):
-    return src if re.match(r"^https?://", src) else BASE + src.removeprefix(BASE_PATH)
 
 
 def git_date(path):
@@ -130,13 +108,11 @@ def render_body(body):
     return "\n".join(parts)
 
 
-def page(*, title, description, path, body, og_type="website", jsonld=None, image=""):
+def page(*, title, description, path, body, og_type="website", jsonld=None):
     url = BASE + path
     full_title = title if title == site["title"] else f"{title}｜{site['title']}"
     verify = site.get("google_site_verification", "").strip()
     verify_tag = f'\n  <meta name="google-site-verification" content="{esc(verify)}">' if verify else ""
-    # SNS は SVG を表示できないので、SVG のときは共通の OGP 画像を使う
-    og_image = absolute(image) if image and not image.lower().endswith(".svg") else f"{BASE}/assets/ogp.png"
     ld = f'\n  <script type="application/ld+json">{json.dumps(jsonld, ensure_ascii=False)}</script>' if jsonld else ""
     return f"""<!doctype html>
 <html lang="ja">
@@ -152,7 +128,7 @@ def page(*, title, description, path, body, og_type="website", jsonld=None, imag
   <meta property="og:description" content="{esc(description)}">
   <meta property="og:type" content="{og_type}">
   <meta property="og:url" content="{url}">
-  <meta property="og:image" content="{esc(og_image)}">
+  <meta property="og:image" content="{BASE}/assets/ogp.png">
   <meta property="og:locale" content="ja_JP">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#05070d">
@@ -203,8 +179,6 @@ def build():
         shutil.rmtree(OUT)
     OUT.mkdir()
     shutil.copytree(ASSETS, OUT / "assets")
-    if IMAGES.exists():
-        shutil.copytree(IMAGES, OUT / "images")
     (OUT / ".nojekyll").write_text("")
 
     stories = [parse_story(p) for p in sorted(STORIES.glob("*.md"))]
@@ -229,11 +203,9 @@ def build():
         else:
             nav.append("<span></span>")
         minutes = max(1, round(s["chars"] / 500))
-        visual = f"""
-        <figure class="story-visual"><img src="{esc(s['image'])}" alt="{esc(s['image_alt'])}" width="960" height="420"></figure>""" if s["image"] else ""
         body = f"""  <main class="reader">
     <article>
-      <header class="story-header">{visual}
+      <header class="story-header">
         <p class="mono story-meta">FILE No.{s['no']} // {esc(s['date'])}</p>
         <h1 class="story-title">{esc(s['title'])}</h1>
         <p class="story-byline">{esc(site['author'])}</p>
@@ -259,14 +231,13 @@ def build():
             "inLanguage": "ja",
             **({"genre": s["genre"]} if s["genre"] else {}),
             **({"keywords": ", ".join(s["tags"])} if s["tags"] else {}),
-            **({"image": absolute(s["image"])} if s["image"] else {}),
             "url": BASE + story_url(s),
             "isPartOf": {"@type": "WebSite", "name": site["title"], "url": BASE + "/"},
         }
         out = OUT / "works" / s["slug"] / "index.html"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(page(title=s["title"], description=s["description"], path=story_url(s),
-                            body=body, og_type="article", jsonld=jsonld, image=s["image"]), encoding="utf-8")
+                            body=body, og_type="article", jsonld=jsonld), encoding="utf-8")
 
     # トップページ（検索・ジャンル絞り込みは assets/search.js がクライアント側で行う）
     def card(s):
@@ -275,10 +246,8 @@ def build():
             parts = [f'<span class="label label-genre">{esc(s["genre"])}</span>'] if s["genre"] else []
             parts += [f'<span class="label">#{esc(t)}</span>' for t in s["tags"]]
             labels = f'\n          <span class="labels">{"".join(parts)}</span>'
-        thumb = f"""
-          <span class="card-thumb"><img src="{esc(s['image'])}" alt="" width="960" height="420" loading="lazy"></span>""" if s["image"] else ""
         return f"""      <li data-slug="{esc(s['slug'])}">
-        <a class="card{' has-thumb' if s['image'] else ''}" href="{BASE_PATH}{story_url(s)}">{thumb}
+        <a class="card" href="{BASE_PATH}{story_url(s)}">
           <span class="mono card-no">No.{s['no']}</span>
           <h2 class="card-title">{esc(s['title'])}</h2>
           <p class="card-desc">{esc(s['description'])}</p>{labels}
