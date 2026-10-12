@@ -24,6 +24,23 @@ BASE_PATH = re.sub(r"^https?://[^/]+", "", BASE)
 
 esc = html.escape
 
+ABOUT_PATH = "/about/"
+
+
+def x_url(value):
+    """site.json の author_x（@名前・名前・URLのどれでもよい）を X のプロフィールURLにする。"""
+    v = (value or "").strip()
+    if not v:
+        return ""
+    if v.startswith("http"):
+        return v
+    return "https://x.com/" + v.lstrip("@")
+
+
+AUTHOR_X = x_url(site.get("author_x"))
+AUTHOR = {"@type": "Person", "name": site["author"], "url": BASE + ABOUT_PATH,
+          **({"sameAs": [AUTHOR_X]} if AUTHOR_X else {})}
+
 
 def parse_story(path):
     text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
@@ -149,7 +166,7 @@ def page(*, title, description, path, body, og_type="website", jsonld=None):
   </header>
 {body}
   <footer class="site-footer">
-    <p>&copy; {datetime.date.today().year} {esc(site['author'])}</p>
+    <p>&copy; {datetime.date.today().year} <a class="footer-author" href="{BASE_PATH}{ABOUT_PATH}" rel="author">{esc(site['author'])}</a></p>
     <p class="mono">END OF TRANSMISSION</p>
   </footer>
 </body>
@@ -243,7 +260,7 @@ def build():
       <header class="story-header">
         <p class="mono story-meta">FILE No.{s['no']} // {esc(s['date'])}</p>
         <h1 class="story-title">{esc(s['title'])}</h1>
-        <p class="story-byline">{esc(site['author'])}</p>
+        <p class="story-byline"><a href="{BASE_PATH}{ABOUT_PATH}" rel="author">{esc(site['author'])}</a></p>
         <p class="mono story-stats">{s['chars']:,} 字 · 約 {minutes} 分</p>{story_labels(s)}
       </header>
       <div class="story-body">
@@ -261,7 +278,7 @@ def build():
             "headline": s["title"],
             "name": s["title"],
             "description": s["description"],
-            "author": {"@type": "Person", "name": site["author"]},
+            "author": AUTHOR,
             "datePublished": s["date"],
             "inLanguage": "ja",
             **({"genre": s["genre"]} if s["genre"] else {}),
@@ -325,10 +342,41 @@ def build():
         "description": site["description"],
         "url": BASE + "/",
         "inLanguage": "ja",
-        "author": {"@type": "Person", "name": site["author"]},
+        "author": AUTHOR,
     }
     (OUT / "index.html").write_text(page(title=site["title"], description=site["description"],
                                          path="/", body=body, jsonld=jsonld), encoding="utf-8")
+
+    # 作者プロフィール
+    x_link = f"""
+      <p class="profile-links"><a class="profile-x" href="{esc(AUTHOR_X)}" rel="me noopener" target="_blank">X（旧Twitter）で{esc(site['author'])}をフォロー</a></p>""" if AUTHOR_X else ""
+    works = "\n".join(
+        f'        <li><a href="{BASE_PATH}{story_url(s)}"><span class="mono">No.{s["no"]}</span>{esc(s["title"])}</a></li>'
+        for s in newest_first)
+    bio = site.get("author_bio", "").strip()
+    about_desc = f"{site['author']}のプロフィール。{bio}"
+    body = f"""  <main class="home profile">
+    <section class="hero">
+      <p class="mono hero-eyebrow">// AUTHOR PROFILE</p>
+      <h1 class="hero-title">{esc(site['author'])}</h1>
+      <p class="hero-desc">{esc(bio)}</p>{x_link}
+    </section>
+    <h2 class="section-label mono">WORKS</h2>
+    <ul class="profile-works">
+{works}
+    </ul>
+  </main>"""
+    jsonld = {
+        "@context": "https://schema.org",
+        "@type": "ProfilePage",
+        "url": BASE + ABOUT_PATH,
+        "inLanguage": "ja",
+        "mainEntity": {**AUTHOR, **({"description": bio} if bio else {})},
+    }
+    out = OUT / "about" / "index.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(page(title=f"{site['author']}のプロフィール", description=about_desc, path=ABOUT_PATH,
+                        body=body, og_type="profile", jsonld=jsonld), encoding="utf-8")
 
     # 404
     body = f"""  <main class="home">
@@ -348,7 +396,7 @@ def build():
 
     # sitemap.xml / robots.txt
     latest = newest_first[0]["date"] if stories else datetime.date.today().isoformat()
-    urls = [(BASE + "/", latest)] + [(BASE + story_url(s), s["date"]) for s in stories]
+    urls = [(BASE + "/", latest), (BASE + ABOUT_PATH, latest)] + [(BASE + story_url(s), s["date"]) for s in stories]
     sitemap = ['<?xml version="1.0" encoding="UTF-8"?>',
                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     sitemap += [f"  <url><loc>{esc(u)}</loc><lastmod>{d}</lastmod></url>" for u, d in urls]
