@@ -9,6 +9,7 @@ import json
 import re
 import shutil
 import subprocess
+from urllib.parse import quote
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -41,9 +42,13 @@ def parse_story(path):
         lines = lines[1:]
     meta.setdefault("title", path.stem)
     meta.setdefault("date", git_date(path))
+    meta["added"] = git_added(path)
     meta["slug"] = meta.get("slug") or path.stem
     body = "\n".join(lines).strip("\n")
-    meta["chars"] = len(re.sub(r"\s", "", body))
+    meta["genre"] = meta.get("genre", "")
+    meta["tags"] = [t.strip() for t in re.split(r"[,、，]", meta.get("tags", "")) if t.strip()]
+    meta["text"] = re.sub(r"\s+", "", body)
+    meta["chars"] = len(meta["text"])
     meta.setdefault("description", excerpt(body))
     meta["html"] = render_body(body)
     return meta
@@ -60,6 +65,20 @@ def git_date(path):
     except (subprocess.CalledProcessError, FileNotFoundError):
         pass
     return datetime.date.today().isoformat()
+
+
+def git_added(path):
+    """リポジトリに初めて追加されたコミットの時刻（UNIX秒）。同じ掲載日の作品を掲載順に並べるのに使う。"""
+    try:
+        out = subprocess.run(
+            ["git", "log", "--diff-filter=A", "--format=%ct", "--", str(path)],
+            cwd=ROOT, capture_output=True, text=True, check=True,
+        ).stdout.split()
+        if out:
+            return int(out[-1])
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+    return float("inf")  # 未コミットの新作は最後
 
 
 def excerpt(body, n=90):
@@ -142,6 +161,19 @@ def story_url(s):
     return f"/works/{s['slug']}/"
 
 
+def filter_url(key, value):
+    return f"{BASE_PATH}/?{key}={quote(value)}"
+
+
+def story_labels(s):
+    """作品ページ用のジャンル・タグ（一覧の絞り込みへのリンク）。"""
+    items = []
+    if s["genre"]:
+        items.append(f'<a class="label label-genre" href="{filter_url("genre", s["genre"])}">{esc(s["genre"])}</a>')
+    items += [f'<a class="label" href="{filter_url("tag", t)}">#{esc(t)}</a>' for t in s["tags"]]
+    return f'\n        <p class="labels">{"".join(items)}</p>' if items else ""
+
+
 def build():
     if OUT.exists():
         shutil.rmtree(OUT)
@@ -150,8 +182,8 @@ def build():
     (OUT / ".nojekyll").write_text("")
 
     stories = [parse_story(p) for p in sorted(STORIES.glob("*.md"))]
-    # 古い順に通し番号を振り、一覧は新しい順に並べる
-    stories.sort(key=lambda s: (s["date"], s["slug"]))
+    # 掲載日（同日なら掲載順）の古い順に通し番号を振り、一覧は新しい順に並べる
+    stories.sort(key=lambda s: (s["date"], s["added"], s["slug"]))
     for i, s in enumerate(stories, 1):
         s["no"] = f"{i:03d}"
     newest_first = list(reversed(stories))
@@ -177,7 +209,7 @@ def build():
         <p class="mono story-meta">FILE No.{s['no']} // {esc(s['date'])}</p>
         <h1 class="story-title">{esc(s['title'])}</h1>
         <p class="story-byline">{esc(site['author'])}</p>
-        <p class="mono story-stats">{s['chars']:,} 字 · 約 {minutes} 分</p>
+        <p class="mono story-stats">{s['chars']:,} 字 · 約 {minutes} 分</p>{story_labels(s)}
       </header>
       <div class="story-body">
 {s['html']}
@@ -197,6 +229,8 @@ def build():
             "author": {"@type": "Person", "name": site["author"]},
             "datePublished": s["date"],
             "inLanguage": "ja",
+            **({"genre": s["genre"]} if s["genre"] else {}),
+            **({"keywords": ", ".join(s["tags"])} if s["tags"] else {}),
             "url": BASE + story_url(s),
             "isPartOf": {"@type": "WebSite", "name": site["title"], "url": BASE + "/"},
         }
@@ -205,18 +239,29 @@ def build():
         out.write_text(page(title=s["title"], description=s["description"], path=story_url(s),
                             body=body, og_type="article", jsonld=jsonld), encoding="utf-8")
 
-    # トップページ
-    cards = "\n".join(
-        f"""      <li>
+    # トップページ（検索・ジャンル絞り込みは assets/search.js がクライアント側で行う）
+    def card(s):
+        labels = ""
+        if s["genre"] or s["tags"]:
+            parts = [f'<span class="label label-genre">{esc(s["genre"])}</span>'] if s["genre"] else []
+            parts += [f'<span class="label">#{esc(t)}</span>' for t in s["tags"]]
+            labels = f'\n          <span class="labels">{"".join(parts)}</span>'
+        return f"""      <li data-slug="{esc(s['slug'])}">
         <a class="card" href="{BASE_PATH}{story_url(s)}">
           <span class="mono card-no">No.{s['no']}</span>
           <h2 class="card-title">{esc(s['title'])}</h2>
-          <p class="card-desc">{esc(s['description'])}</p>
+          <p class="card-desc">{esc(s['description'])}</p>{labels}
           <span class="mono card-meta">{esc(s['date'])} · {s['chars']:,} 字</span>
         </a>
       </li>"""
-        for s in newest_first
-    )
+
+    cards = "\n".join(card(s) for s in newest_first)
+    genres = sorted({s["genre"] for s in stories if s["genre"]})
+    chips = "".join(f'<button type="button" class="chip" data-genre="{esc(g)}">{esc(g)}</button>' for g in genres)
+    genre_bar = f"""
+      <div class="chips" role="group" aria-label="ジャンルで絞り込む">
+        <button type="button" class="chip" data-genre="" aria-pressed="true">すべて</button>{chips}
+      </div>""" if genres else ""
     body = f"""  <main class="home">
     <section class="hero">
       <p class="mono hero-eyebrow">// ARCHIVE ONLINE · {len(stories)} FILES</p>
@@ -224,10 +269,20 @@ def build():
       <p class="hero-desc">{esc(site['description'])}</p>
     </section>
     <h2 class="section-label mono">STORIES</h2>
+    <form class="finder" role="search" onsubmit="return false">
+      <label class="search">
+        <span class="mono search-label">SEARCH</span>
+        <input type="search" id="q" name="q" placeholder="タイトル・本文・タグで検索" autocomplete="off">
+      </label>{genre_bar}
+      <p class="mono finder-status" id="finder-status" aria-live="polite"></p>
+    </form>
     <ul class="cards">
 {cards}
     </ul>
-  </main>"""
+    <p class="empty" id="empty" hidden>該当する作品は見つかりませんでした。</p>
+  </main>
+  <script>window.SEARCH_INDEX = "{BASE_PATH}/search.json";</script>
+  <script src="{BASE_PATH}/assets/search.js" defer></script>"""
     jsonld = {
         "@context": "https://schema.org",
         "@type": "WebSite",
@@ -250,6 +305,11 @@ def build():
   </main>"""
     (OUT / "404.html").write_text(page(title="ページが見つかりません", description=site["description"],
                                        path="/404.html", body=body), encoding="utf-8")
+
+    # 検索用インデックス
+    index = [{"slug": s["slug"], "title": s["title"], "description": s["description"],
+              "genre": s["genre"], "tags": s["tags"], "text": s["text"]} for s in stories]
+    (OUT / "search.json").write_text(json.dumps(index, ensure_ascii=False), encoding="utf-8")
 
     # sitemap.xml / robots.txt
     latest = newest_first[0]["date"] if stories else datetime.date.today().isoformat()
