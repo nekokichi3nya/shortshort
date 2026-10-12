@@ -1,4 +1,4 @@
-// 感想・星評価（保存先は Google スプレッドシート。reviews/apps-script.gs を参照）
+// 星評価（保存先は Google スプレッドシート。reviews/apps-script.gs を参照）
 (function () {
   var API = window.REVIEWS_ENDPOINT;
   if (!API) return;
@@ -10,6 +10,9 @@
   function get(params) {
     return fetch(API + (params ? "?" + new URLSearchParams(params) : "")).then(function (r) { return r.json(); });
   }
+  function label(avg, count) {
+    return "平均評価 5点中" + avg.toFixed(1) + "、" + count + "件";
+  }
 
   // 一覧ページ：カードに平均評価を出す
   var cardSpots = document.querySelectorAll("[data-rating-for]");
@@ -20,62 +23,41 @@
         var s = d.summary[el.dataset.ratingFor];
         if (!s) return;
         el.textContent = "★ " + s.avg.toFixed(1) + " (" + s.count + ")";
-        el.setAttribute("aria-label", "平均評価 5点中" + s.avg.toFixed(1) + "、" + s.count + "件");
+        el.setAttribute("aria-label", label(s.avg, s.count));
         el.hidden = false;
       });
     }).catch(function () {});
   }
 
-  // 作品ページ：評価の表示と投稿
+  // 作品ページ：平均の表示と評価の送信
   var box = document.getElementById("reviews");
   if (!box) return;
   var slug = box.dataset.slug;
   var form = box.querySelector("form");
   var status = box.querySelector(".review-status");
   var summary = box.querySelector(".review-summary");
-  var list = box.querySelector(".review-list");
   var doneKey = "reviewed:" + slug;
 
   function load() {
     get({ slug: slug }).then(function (d) {
       if (!d.ok) return;
-      if (d.count) {
-        summary.innerHTML = "";
-        var big = document.createElement("span");
-        big.className = "review-avg";
-        big.textContent = d.avg.toFixed(1);
-        var st = document.createElement("span");
-        st.className = "review-stars";
-        st.textContent = stars(d.avg);
-        st.setAttribute("aria-hidden", "true");
-        var c = document.createElement("span");
-        c.className = "mono review-count";
-        c.textContent = d.count + " 件の評価";
-        summary.append(big, st, c);
-        summary.setAttribute("aria-label", "平均評価 5点中" + d.avg.toFixed(1) + "、" + d.count + "件");
-      } else {
+      if (!d.count) {
         summary.textContent = "まだ評価はありません。";
+        return;
       }
-      list.innerHTML = "";
-      d.comments.forEach(function (r) {
-        var li = document.createElement("li");
-        var head = document.createElement("p");
-        head.className = "review-head";
-        var s = document.createElement("span");
-        s.className = "review-stars";
-        s.textContent = stars(r.rating);
-        s.setAttribute("aria-label", "5点中" + r.rating + "点");
-        var date = document.createElement("span");
-        date.className = "mono";
-        date.textContent = r.date;
-        head.append(s, date);
-        var body = document.createElement("p");
-        body.className = "review-text";
-        body.textContent = r.comment;
-        li.append(head, body);
-        list.appendChild(li);
-      });
-      list.hidden = !d.comments.length;
+      summary.innerHTML = "";
+      var big = document.createElement("span");
+      big.className = "review-avg";
+      big.textContent = d.avg.toFixed(1);
+      var st = document.createElement("span");
+      st.className = "review-stars";
+      st.textContent = stars(d.avg);
+      st.setAttribute("aria-hidden", "true");
+      var c = document.createElement("span");
+      c.className = "mono review-count";
+      c.textContent = d.count + " 件の評価";
+      summary.append(big, st, c);
+      summary.setAttribute("aria-label", label(d.avg, d.count));
     }).catch(function () {
       summary.textContent = "評価を読み込めませんでした。";
     });
@@ -87,7 +69,7 @@
   }
 
   try {
-    if (localStorage.getItem(doneKey)) markDone("この作品には評価を送信済みです。ありがとうございました。");
+    if (localStorage.getItem(doneKey)) markDone("この作品は評価済みです。ありがとうございました。");
   } catch (e) {}
 
   form.addEventListener("submit", function (ev) {
@@ -106,9 +88,7 @@
       .then(function (d) {
         if (!d.ok) throw new Error(d.error);
         try { localStorage.setItem(doneKey, "1"); } catch (e) {}
-        markDone(d.pending
-          ? "送信しました。感想は確認後に掲載されます。ありがとうございました。"
-          : "送信しました。ありがとうございました。");
+        markDone("送信しました。ありがとうございました。");
         load();
       })
       .catch(function (e) {
