@@ -165,6 +165,46 @@ def filter_url(key, value):
     return f"{BASE_PATH}/?{key}={quote(value)}"
 
 
+REVIEWS_API = site.get("reviews_endpoint", "").strip()
+
+
+def reviews_script():
+    """感想機能の読み込み。site.json の reviews_endpoint が空なら何も出さない。"""
+    if not REVIEWS_API:
+        return ""
+    return f"""
+  <script>window.REVIEWS_ENDPOINT = {json.dumps(REVIEWS_API)};</script>
+  <script src="{BASE_PATH}/assets/reviews.js" defer></script>"""
+
+
+def reviews_section(s):
+    if not REVIEWS_API:
+        return ""
+    radios = "".join(
+        f'<input type="radio" id="star{n}" name="rating" value="{n}">'
+        f'<label for="star{n}" title="{n}点"><span class="visually-hidden">{n}点</span></label>'
+        for n in range(5, 0, -1))
+    return f"""
+    <section class="reviews" id="reviews" data-slug="{esc(s['slug'])}" aria-labelledby="reviews-title">
+      <h2 class="section-label mono" id="reviews-title">REVIEWS</h2>
+      <p class="review-summary">読み込み中…</p>
+      <form class="review-form">
+        <fieldset class="star-input">
+          <legend>この作品の評価</legend>
+          <div class="star-row">{radios}</div>
+        </fieldset>
+        <label class="review-comment">
+          <span>感想（任意）</span>
+          <textarea name="comment" rows="4" maxlength="1000" placeholder="ひとことでも"></textarea>
+        </label>
+        <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <button type="submit">送信する</button>
+      </form>
+      <p class="review-status" aria-live="polite"></p>
+      <ul class="review-list" hidden></ul>
+    </section>"""
+
+
 def story_labels(s):
     """作品ページ用のジャンル・タグ（一覧の絞り込みへのリンク）。"""
     items = []
@@ -215,11 +255,11 @@ def build():
 {s['html']}
       </div>
       <p class="story-end mono" aria-hidden="true">— END —</p>
-    </article>
+    </article>{reviews_section(s)}
     <nav class="story-nav" aria-label="作品間の移動">
       {''.join(nav)}
     </nav>
-  </main>"""
+  </main>{reviews_script()}"""
         jsonld = {
             "@context": "https://schema.org",
             "@type": "ShortStory",
@@ -251,7 +291,7 @@ def build():
           <span class="mono card-no">No.{s['no']}</span>
           <h2 class="card-title">{esc(s['title'])}</h2>
           <p class="card-desc">{esc(s['description'])}</p>{labels}
-          <span class="mono card-meta">{esc(s['date'])} · {s['chars']:,} 字</span>
+          <span class="mono card-meta">{esc(s['date'])} · {s['chars']:,} 字<span class="card-rating" data-rating-for="{esc(s['slug'])}" hidden></span></span>
         </a>
       </li>"""
 
@@ -282,7 +322,7 @@ def build():
     <p class="empty" id="empty" hidden>該当する作品は見つかりませんでした。</p>
   </main>
   <script>window.SEARCH_INDEX = "{BASE_PATH}/search.json";</script>
-  <script src="{BASE_PATH}/assets/search.js" defer></script>"""
+  <script src="{BASE_PATH}/assets/search.js" defer></script>{reviews_script()}"""
     jsonld = {
         "@context": "https://schema.org",
         "@type": "WebSite",
