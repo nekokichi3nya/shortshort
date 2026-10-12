@@ -125,11 +125,12 @@ def render_body(body):
     return "\n".join(parts)
 
 
-def page(*, title, description, path, body, og_type="website", jsonld=None):
+def page(*, title, description, path, body, og_type="website", jsonld=None, noindex=False):
     url = BASE + path
     full_title = title if title == site["title"] else f"{title}｜{site['title']}"
     verify = site.get("google_site_verification", "").strip()
     verify_tag = f'\n  <meta name="google-site-verification" content="{esc(verify)}">' if verify else ""
+    robots = '\n  <meta name="robots" content="noindex, nofollow">' if noindex else ""
     ld = f'\n  <script type="application/ld+json">{json.dumps(jsonld, ensure_ascii=False)}</script>' if jsonld else ""
     return f"""<!doctype html>
 <html lang="ja">
@@ -139,7 +140,7 @@ def page(*, title, description, path, body, og_type="website", jsonld=None):
   <title>{esc(full_title)}</title>
   <meta name="description" content="{esc(description)}">
   <meta name="author" content="{esc(site['author'])}">
-  <link rel="canonical" href="{url}">{verify_tag}
+  <link rel="canonical" href="{url}">{verify_tag}{robots}
   <meta property="og:site_name" content="{esc(site['title'])}">
   <meta property="og:title" content="{esc(full_title)}">
   <meta property="og:description" content="{esc(description)}">
@@ -244,6 +245,11 @@ def build():
     (OUT / ".nojekyll").write_text("")
 
     stories = [parse_story(p) for p in sorted(STORIES.glob("*.md"))]
+    # hidden: true の作品（隠し作品）はURLを知っている人だけが読める。一覧・検索・サイトマップ・番号に含めない
+    hidden = [s for s in stories if s.get("hidden", "").lower() in ("true", "yes", "1")]
+    stories = [s for s in stories if s not in hidden]
+    for s in hidden:
+        s["no"] = "---"
     # 掲載日（同日なら掲載順）の古い順に通し番号を振り、一覧は新しい順に並べる
     stories.sort(key=lambda s: (s["date"], s["added"], s["slug"]))
     for i, s in enumerate(stories, 1):
@@ -251,9 +257,10 @@ def build():
     newest_first = list(reversed(stories))
 
     # 作品ページ
-    for i, s in enumerate(stories):
-        prev_s = stories[i - 1] if i > 0 else None
-        next_s = stories[i + 1] if i + 1 < len(stories) else None
+    pages = [(s, stories[i - 1] if i > 0 else None, stories[i + 1] if i + 1 < len(stories) else None)
+             for i, s in enumerate(stories)] + [(s, None, None) for s in hidden]
+    for s, prev_s, next_s in pages:
+        is_hidden = s in hidden
         nav = []
         if prev_s:
             nav.append(f'<a class="nav-prev" href="{BASE_PATH}{story_url(prev_s)}"><span class="mono">&lt; PREV</span>{esc(prev_s["title"])}</a>')
@@ -277,11 +284,11 @@ def build():
 {s['html']}
       </div>
       <p class="story-end mono" aria-hidden="true">— END —</p>
-    </article>{reviews_section(s)}
+    </article>{"" if is_hidden else reviews_section(s)}
     <nav class="story-nav" aria-label="作品間の移動">
       {''.join(nav)}
     </nav>
-  </main>{reviews_script()}"""
+  </main>{"" if is_hidden else reviews_script()}"""
         jsonld = {
             "@context": "https://schema.org",
             "@type": "ShortStory",
@@ -299,7 +306,8 @@ def build():
         out = OUT / "works" / s["slug"] / "index.html"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(page(title=s["title"], description=s["description"], path=story_url(s),
-                            body=body, og_type="article", jsonld=jsonld), encoding="utf-8")
+                            body=body, og_type="article", jsonld=None if is_hidden else jsonld,
+                            noindex=is_hidden), encoding="utf-8")
 
     # トップページ（検索・ジャンル絞り込みは assets/search.js がクライアント側で行う）
     def card(s):
@@ -434,7 +442,7 @@ def build():
     (OUT / "sitemap.xml").write_text("\n".join(sitemap), encoding="utf-8")
     (OUT / "robots.txt").write_text(f"User-agent: *\nAllow: /\n\nSitemap: {BASE}/sitemap.xml\n", encoding="utf-8")
 
-    print(f"built {len(stories)} stories -> {OUT}")
+    print(f"built {len(stories)} stories (+{len(hidden)} hidden) -> {OUT}")
 
 
 if __name__ == "__main__":
