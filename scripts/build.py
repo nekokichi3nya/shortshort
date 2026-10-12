@@ -183,6 +183,8 @@ def filter_url(key, value):
 
 
 REVIEWS_API = site.get("reviews_endpoint", "").strip()
+# 評価に添えて選べる感想（reviews/apps-script.gs の REACTIONS と同じにする）
+REACTIONS = ["ゾッとした", "切なかった", "オチにやられた", "考えさせられた", "ありそうで怖い", "また読みたい"]
 
 
 def reviews_script():
@@ -201,14 +203,22 @@ def reviews_section(s):
         f'<input type="radio" id="star{n}" name="rating" value="{n}">'
         f'<label for="star{n}" title="{n}点"><span class="visually-hidden">{n}点</span></label>'
         for n in range(5, 0, -1))
+    chips = "".join(
+        f'<label class="reaction"><input type="checkbox" name="reactions" value="{esc(r)}"><span>{esc(r)}</span></label>'
+        for r in REACTIONS)
     return f"""
     <section class="reviews" id="reviews" data-slug="{esc(s['slug'])}" aria-labelledby="reviews-title">
       <h2 class="section-label mono" id="reviews-title">REVIEWS</h2>
       <p class="review-summary">読み込み中…</p>
+      <ul class="reaction-counts" hidden></ul>
       <form class="review-form">
         <fieldset class="star-input">
           <legend>この作品の評価</legend>
           <div class="star-row">{radios}</div>
+        </fieldset>
+        <fieldset class="reaction-input">
+          <legend>ひとこと（任意・いくつでも）</legend>
+          <div class="reaction-row">{chips}</div>
         </fieldset>
         <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
         <button type="submit">送信する</button>

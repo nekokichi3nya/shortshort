@@ -36,11 +36,13 @@
   var form = box.querySelector("form");
   var status = box.querySelector(".review-status");
   var summary = box.querySelector(".review-summary");
+  var counts = box.querySelector(".reaction-counts");
   var doneKey = "reviewed:" + slug;
 
   function load() {
     get({ slug: slug }).then(function (d) {
       if (!d.ok) return;
+      showReactions(d.reactions || {});
       if (!d.count) {
         summary.textContent = "まだ評価はありません。";
         return;
@@ -63,6 +65,22 @@
     });
   }
 
+  // 選ばれた感想を多い順に「ゾッとした 3」の形で並べる
+  function showReactions(r) {
+    var keys = Object.keys(r).sort(function (a, b) { return r[b] - r[a]; });
+    counts.innerHTML = "";
+    keys.forEach(function (k) {
+      var li = document.createElement("li");
+      li.textContent = k + " ";
+      var n = document.createElement("span");
+      n.className = "mono";
+      n.textContent = r[k];
+      li.appendChild(n);
+      counts.appendChild(li);
+    });
+    counts.hidden = !keys.length;
+  }
+
   function markDone(msg) {
     form.hidden = true;
     status.textContent = msg;
@@ -79,6 +97,7 @@
       status.textContent = "星をえらんでください。";
       return;
     }
+    fd.set("reactions", fd.getAll("reactions").join(","));
     fd.append("slug", slug);
     var btn = form.querySelector("button");
     btn.disabled = true;
