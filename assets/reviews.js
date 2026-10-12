@@ -81,14 +81,48 @@
     counts.hidden = !keys.length;
   }
 
-  function markDone(msg) {
-    form.hidden = true;
-    status.textContent = msg;
+  // このブラウザを見分ける ID。同じ ID で送り直すと、前の評価が書き換わる
+  function voterId() {
+    try {
+      var id = localStorage.getItem("voter-id");
+      if (!id) {
+        id = Array.prototype.map.call(crypto.getRandomValues(new Uint8Array(16)), function (b) {
+          return ("0" + b.toString(16)).slice(-2);
+        }).join("");
+        localStorage.setItem("voter-id", id);
+      }
+      return id;
+    } catch (e) {
+      return "";
+    }
   }
 
-  try {
-    if (localStorage.getItem(doneKey)) markDone("この作品は評価済みです。ありがとうございました。");
-  } catch (e) {}
+  function savedChoice() {
+    try {
+      return JSON.parse(localStorage.getItem(doneKey) || "null");
+    } catch (e) {
+      return null;
+    }
+  }
+
+  var btn = form.querySelector("button");
+
+  // 前に送った評価をフォームに戻し、選び直せるようにする
+  function showMine(c) {
+    Array.prototype.forEach.call(form.querySelectorAll("input[name=rating]"), function (el) {
+      el.checked = Number(el.value) === c.rating;
+    });
+    Array.prototype.forEach.call(form.querySelectorAll("input[name=reactions]"), function (el) {
+      el.checked = (c.reactions || []).indexOf(el.value) >= 0;
+    });
+    btn.textContent = "評価を変更する";
+  }
+
+  var mine = savedChoice();
+  if (mine && mine.rating) {
+    showMine(mine);
+    status.textContent = "あなたの評価です。選び直して「評価を変更する」を押すと変更できます。";
+  }
 
   form.addEventListener("submit", function (ev) {
     ev.preventDefault();
@@ -97,17 +131,22 @@
       status.textContent = "星をえらんでください。";
       return;
     }
-    fd.set("reactions", fd.getAll("reactions").join(","));
+    var choice = { rating: Number(fd.get("rating")), reactions: fd.getAll("reactions") };
+    var changing = !!(mine && mine.rating);
+    fd.set("reactions", choice.reactions.join(","));
     fd.append("slug", slug);
-    var btn = form.querySelector("button");
+    fd.append("voter", voterId());
     btn.disabled = true;
     status.textContent = "送信中…";
     fetch(API, { method: "POST", body: new URLSearchParams(fd) })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d.ok) throw new Error(d.error);
-        try { localStorage.setItem(doneKey, "1"); } catch (e) {}
-        markDone("送信しました。ありがとうございました。");
+        mine = choice;
+        try { localStorage.setItem(doneKey, JSON.stringify(choice)); } catch (e) {}
+        btn.disabled = false;
+        showMine(choice);
+        status.textContent = changing ? "評価を変更しました。" : "送信しました。ありがとうございました。";
         load();
       })
       .catch(function (e) {
