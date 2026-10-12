@@ -2,12 +2,12 @@
  * 星評価の受け口（Google スプレッドシート + Apps Script）。
  * 設定手順は README の「星評価」を参照。
  *
- * シート「評価」の各行が1件の評価。「無効」にチェックを入れた行は平均にも感想の数にも入らなくなる。
+ * シート「評価」の各行が1件の評価（同じブラウザから送り直すと、その行を書き換える）。「無効」にチェックを入れた行は平均にも感想の数にも入らなくなる。
  * スプレッドシートの「拡張機能 → Apps Script」から作っても、script.google.com で単独のプロジェクトとして作ってもよい。
  * 単独の場合は、最初の評価が届いたときに「眠人ショートショート 星評価」というスプレッドシートを自動で作る。
  */
 var SHEET_NAME = '評価';
-var HEADER = ['日時', '作品', '星', '無効', '感想'];
+var HEADER = ['日時', '作品', '星', '無効', '感想', 'ID'];
 // 選べる感想（サイト側の scripts/build.py の REACTIONS と同じにする）
 var REACTIONS = ['ゾッとした', '切なかった', 'オチにやられた', '考えさせられた', 'ありそうで怖い', 'また読みたい'];
 // 荒らし対策：サイト全体で10分間に受け付ける評価の上限
@@ -45,6 +45,7 @@ function doPost(e) {
   if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(slug) || !(rating >= 1 && rating <= 5 && rating % 1 === 0)) {
     return json_({ ok: false, error: 'invalid' });
   }
+  var voter = /^[0-9a-f]{32}$/.test(String(p.voter || '')) ? String(p.voter) : '';
   var picked = String(p.reactions || '').split(',').filter(function (x, i, a) {
     return REACTIONS.indexOf(x) >= 0 && a.indexOf(x) === i;
   });
@@ -58,12 +59,30 @@ function doPost(e) {
     cache.put(key, String(n + 1), 700);
 
     var sh = sheet_();
-    sh.appendRow([new Date(), slug, rating, false, picked.join('、')]);
-    sh.getRange(sh.getLastRow(), 4).insertCheckboxes();
+    var row = voter ? findRow_(sh, slug, voter) : 0;
+    if (row) {
+      // 前の評価を書き換える（「無効」のチェックはそのまま）
+      sh.getRange(row, 1).setValue(new Date());
+      sh.getRange(row, 3).setValue(rating);
+      sh.getRange(row, 5).setValue(picked.join('、'));
+    } else {
+      sh.appendRow([new Date(), slug, rating, false, picked.join('、'), voter]);
+      sh.getRange(sh.getLastRow(), 4).insertCheckboxes();
+    }
   } finally {
     lock.releaseLock();
   }
   return json_({ ok: true });
+}
+
+function findRow_(sh, slug, voter) {
+  var last = sh.getLastRow();
+  if (last < 2) return 0;
+  var v = sh.getRange(2, 1, last - 1, HEADER.length).getValues();
+  for (var i = v.length - 1; i >= 0; i--) {
+    if (String(v[i][1]) === slug && String(v[i][5]) === voter) return i + 2;
+  }
+  return 0;
 }
 
 function validRows_() {
@@ -100,8 +119,8 @@ function sheet_() {
     sh.appendRow(HEADER);
     sh.setFrozenRows(1);
   } else if (sh.getRange(1, HEADER.length).getValue() !== HEADER[HEADER.length - 1]) {
-    // 感想の列がなかった頃のシートに見出しを足す
-    sh.getRange(1, HEADER.length).setValue(HEADER[HEADER.length - 1]);
+    // 列が少なかった頃のシートに見出しを足す
+    sh.getRange(1, 1, 1, HEADER.length).setValues([HEADER]);
   }
   return sh;
 }
