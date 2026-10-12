@@ -21,6 +21,17 @@
       if (!d.ok) return;
       window.RATINGS = d.summary;
       if (window.finderRefresh) window.finderRefresh();
+      // 古いスクリプトは一覧に感想の数を返さないので、作品ごとに読み足す
+      var missing = Object.keys(d.summary).filter(function (k) { return !d.summary[k].reactions; });
+      if (missing.length) {
+        Promise.all(missing.map(function (slug) {
+          return get({ slug: slug }).then(function (x) {
+            if (x.ok) d.summary[slug].reactions = x.reactions || {};
+          }).catch(function () {});
+        })).then(function () {
+          if (window.finderRefresh) window.finderRefresh();
+        });
+      }
       Array.prototype.forEach.call(cardSpots, function (el) {
         var s = d.summary[el.dataset.ratingFor];
         if (!s) return;
