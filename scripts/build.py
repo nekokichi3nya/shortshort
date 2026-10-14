@@ -155,6 +155,9 @@ def page(*, title, description, path, body, og_type="website", jsonld=None, noin
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600&family=Zen+Kaku+Gothic+New:wght@500;700&family=Orbitron:wght@500;700&family=Share+Tech+Mono&display=swap">
   <link rel="stylesheet" href="{BASE_PATH}/assets/style.css">{ld}
+  <script>try {{ var f = localStorage.getItem("font-size"); if (f) document.documentElement.dataset.fs = f; }} catch (e) {{}}</script>
+  <script>window.SITE_BASE = "{BASE_PATH}";</script>
+  <script src="{BASE_PATH}/assets/reader.js" defer></script>
 </head>
 <body>
   <div class="stars" aria-hidden="true"></div>
@@ -177,6 +180,29 @@ def page(*, title, description, path, body, og_type="website", jsonld=None, noin
 
 def story_url(s):
     return f"/works/{s['slug']}/"
+
+
+def read_minutes(s):
+    """読了時間（1分＝500字）。"""
+    return max(1, round(s["chars"] / 500))
+
+
+def share_link(s):
+    """作品をXで共有する投稿画面へのリンク。"""
+    text = f"「{s['title']}」{site['author']}"
+    href = ("https://x.com/intent/post?text=" + quote(text) + "&url=" + quote(BASE + story_url(s), safe="")
+            + "&hashtags=" + quote("ショートショート"))
+    return f"""
+    <p class="share"><a class="share-x" href="{esc(href)}" target="_blank" rel="noopener">Xでシェアする</a></p>"""
+
+
+RANDOM_BUTTON = '<button type="button" class="random-btn" hidden><span class="mono">RANDOM</span>ランダムに1作読む</button>'
+
+
+def font_switch():
+    btns = "".join(f'<button type="button" data-fs="{k}" aria-label="文字サイズ{v}">{v}</button>'
+                   for k, v in (("s", "小"), ("m", "中"), ("l", "大")))
+    return f'\n        <div class="fs-switch" role="group" aria-label="文字サイズ"><span class="mono">TEXT</span>{btns}</div>'
 
 
 def filter_url(key, value):
@@ -271,23 +297,24 @@ def build():
             nav.append(f'<a class="nav-next" href="{BASE_PATH}{story_url(next_s)}"><span class="mono">NEXT &gt;</span>{esc(next_s["title"])}</a>')
         else:
             nav.append("<span></span>")
-        minutes = max(1, round(s["chars"] / 500))
+        minutes = read_minutes(s)
         body = f"""  <main class="reader">
-    <article>
+    <article{"" if is_hidden else f' data-read-slug="{esc(s["slug"])}"'}>
       <header class="story-header">
         <p class="mono story-meta">FILE No.{s['no']} // {esc(s['date'])}</p>
         <h1 class="story-title">{esc(s['title'])}</h1>
         <p class="story-byline"><a href="{BASE_PATH}{ABOUT_PATH}" rel="author">{esc(site['author'])}</a></p>
-        <p class="mono story-stats">{s['chars']:,} 字 · 約 {minutes} 分</p>{story_labels(s)}
+        <p class="mono story-stats">{s['chars']:,} 字 · 約 {minutes} 分</p>{font_switch()}{story_labels(s)}
       </header>
       <div class="story-body">
 {s['html']}
       </div>
       <p class="story-end mono" aria-hidden="true">— END —</p>
-    </article>{"" if is_hidden else reviews_section(s)}
+    </article>{"" if is_hidden else share_link(s)}{"" if is_hidden else reviews_section(s)}
     <nav class="story-nav" aria-label="作品間の移動">
       {''.join(nav)}
     </nav>
+    <p class="random-wrap">{RANDOM_BUTTON}</p>
   </main>{"" if is_hidden else reviews_script()}"""
         jsonld = {
             "@context": "https://schema.org",
@@ -318,10 +345,10 @@ def build():
             labels = f'\n          <span class="labels">{"".join(parts)}</span>'
         return f"""      <li data-slug="{esc(s['slug'])}">
         <a class="card" href="{BASE_PATH}{story_url(s)}">
-          <span class="mono card-no">No.{s['no']}</span>
+          <span class="mono card-no">No.{s['no']}<span class="card-read" hidden>READ</span></span>
           <h2 class="card-title">{esc(s['title'])}</h2>
           <p class="card-desc">{esc(s['description'])}</p>{labels}
-          <span class="mono card-meta">{esc(s['date'])} · {s['chars']:,} 字<span class="card-rating" data-rating-for="{esc(s['slug'])}" hidden></span><span class="card-reaction" hidden></span></span>
+          <span class="mono card-meta">{esc(s['date'])} · {s['chars']:,} 字 · 約 {read_minutes(s)} 分<span class="card-rating" data-rating-for="{esc(s['slug'])}" hidden></span><span class="card-reaction" hidden></span></span>
         </a>
       </li>"""
 
@@ -347,6 +374,7 @@ def build():
       <p class="mono hero-eyebrow">// ARCHIVE ONLINE · {len(stories)} FILES</p>
       <h1 class="hero-title">{esc(site['title'])}</h1>
       <p class="hero-desc">{esc(site['description'])}</p>
+      <p class="hero-actions">{RANDOM_BUTTON}<span class="mono read-count" hidden></span></p>
     </section>
     <h2 class="section-label mono">STORIES</h2>
     <form class="finder" role="search" onsubmit="return false">
