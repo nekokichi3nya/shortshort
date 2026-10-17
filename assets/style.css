@@ -309,9 +309,9 @@ a.label:hover { border-color: var(--line-strong); color: var(--text); }
 }
 .story-body p { margin: 0; }
 .story-body p.dialogue { color: #f4f8ff; }
-.story-body p.gap { margin-top: 2.15em; }
+.story-body p.gap { margin-block-start: 2.15em; }
 
-.scene-break { display: flex; justify-content: center; margin: 2.4em 0; }
+.scene-break { display: flex; justify-content: center; margin-block: 2.4em; }
 .scene-break span {
   width: 6px; height: 6px;
   background: var(--accent);
@@ -504,8 +504,42 @@ html[data-fs="l"] .story-body { font-size: 20px; }
   color: var(--text-dim); font-size: 11px; cursor: pointer;
 }
 .read-reset:hover, .read-toggle:hover { border-color: var(--line-strong); color: var(--text); }
-.read-reset[hidden], .read-toggle[hidden] { display: none; }
-.read-toggle-wrap { text-align: center; margin: 16px 0 0; }
+.read-reset[hidden], .read-toggle[hidden], .fav-toggle[hidden] { display: none; }
+.read-toggle-wrap { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 16px 0 0; }
+.fav-toggle {
+  padding: 4px 10px; background: transparent; border: 1px solid var(--line); border-radius: 4px;
+  color: var(--text-dim); font-size: 11px; cursor: pointer;
+}
+.fav-toggle:hover { border-color: var(--line-strong); color: var(--text); }
+.fav-toggle[aria-pressed="true"] { border-color: #ffd76e; color: #ffd76e; }
+.card-fav { margin-left: 8px; color: #ffd76e; font-size: 12px; }
+.card-new { margin-left: 10px; padding: 1px 6px; background: var(--accent); border-radius: 3px; color: var(--bg); font-size: 10px; font-weight: 700; }
+.card-new[hidden], .card-fav[hidden] { display: none; }
+
+/* 次の一作 */
+.next-reads { margin-top: 64px; }
+.next-lead { margin: -6px 0 16px; color: var(--text-dim); font-size: 14px; }
+.next-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.next-list li[hidden] { display: none; }
+.card-mini { padding: 18px 20px 16px; gap: 6px; }
+.card-mini .card-title { font-size: 18px; }
+.card-mini .card-desc { font-size: 13px; }
+
+/* 文字サイズ・縦書きの切り替え */
+.view-switch { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 14px; }
+.view-switch .fs-switch { margin-top: 0; }
+
+/* 縦書き：本文だけを縦にして、横にスクロールして読む（右から左へ） */
+html[data-wm="v"] .story-body {
+  writing-mode: vertical-rl;
+  width: 100%;
+  max-width: 100%;
+  height: min(72vh, 660px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 10px;
+  letter-spacing: 0.08em;
+}
 .read-toggle[aria-pressed="true"] { border-color: var(--accent-2); color: var(--accent-2); }
 .card-read { margin-left: 10px; padding: 1px 6px; border: 1px solid var(--accent-2); border-radius: 3px; color: var(--accent-2); font-size: 10px; }
 .cards li.is-read .card { border-color: rgba(180, 140, 255, 0.3); }

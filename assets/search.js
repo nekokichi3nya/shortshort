@@ -1,4 +1,4 @@
-// トップページの作品検索、ジャンル・タグ・既読・評価・感想での絞り込みと並べ替え（静的サイトなのでブラウザ側で行う）
+// トップページの作品検索、ジャンル・タグ・既読・お気に入り・評価・感想での絞り込みと並べ替え（静的サイトなのでブラウザ側で行う）
 (function () {
   var input = document.getElementById("q");
   var status = document.getElementById("finder-status");
@@ -34,13 +34,14 @@
     return r && r.reactions ? r.reactions[state.r] || 0 : 0;
   }
 
-  // 既読の記録は reader.js が localStorage の read-stories に入れている
-  function readList() {
-    try { return JSON.parse(localStorage.getItem("read-stories") || "[]"); } catch (e) { return []; }
+  // 既読・お気に入りの記録は reader.js が localStorage の read-stories / fav-stories に入れている
+  function stored(key) {
+    try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch (e) { return []; }
   }
 
   function apply() {
-    var done = readList();
+    var done = stored("read-stories");
+    var favs = stored("fav-stories");
     var words = state.q.split(/[\s　]+/).map(norm).filter(Boolean);
     var shown = 0;
     var ratingsReady = !!window.RATINGS;
@@ -48,7 +49,9 @@
       var d = index[li.dataset.slug];
       var ok = true;
       var rt = ratingOf(li.dataset.slug);
-      if (state.read) {
+      if (state.read === "fav") {
+        if (favs.indexOf(li.dataset.slug) < 0) ok = false;
+      } else if (state.read) {
         var isRead = done.indexOf(li.dataset.slug) >= 0;
         if ((state.read === "read") !== isRead) ok = false;
       }
@@ -96,6 +99,9 @@
         status.appendChild(b);
       }
     }
+    if (!empty.dataset.text) empty.dataset.text = empty.textContent;
+    empty.textContent = state.read === "fav" && !favs.length
+      ? "お気に入りはまだありません。作品ページの「☆ お気に入り」で追加できます。" : empty.dataset.text;
     empty.hidden = shown > 0;
   }
 
