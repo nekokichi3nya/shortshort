@@ -71,6 +71,8 @@ def parse_story(path):
     body = "\n".join(lines).strip("\n")
     meta["genre"] = meta.get("genre", "")
     meta["tags"] = [t.strip() for t in re.split(r"[,、，]", meta.get("tags", "")) if t.strip()]
+    # 読み上げの読み方（「yomi: 千夏=ちなつ, 一日=いちにち」）。画面の文字はそのまま
+    meta["yomi"] = dict(p.split("=", 1) for p in (q.strip() for q in re.split(r"[,、，]", meta.get("yomi", ""))) if "=" in p)
     meta["text"] = re.sub(r"\s+", "", body)
     meta["chars"] = len(meta["text"])
     meta.setdefault("description", excerpt(body))
@@ -350,7 +352,7 @@ def build():
             nav.append("<span></span>")
         minutes = read_minutes(s)
         body = f"""  <main class="reader">
-    <article{"" if is_hidden else f' data-read-slug="{esc(s["slug"])}"'}>
+    <article{"" if is_hidden else f' data-read-slug="{esc(s["slug"])}"'}{f" data-yomi='{esc(json.dumps(s['yomi'], ensure_ascii=False))}'" if s["yomi"] else ""}>
       <header class="story-header">
         <p class="mono story-meta">FILE No.{s['no']} // {esc(s['date'])}</p>
         <h1 class="story-title">{esc(s['title'])}</h1>

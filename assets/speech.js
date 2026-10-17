@@ -38,6 +38,18 @@
     return { voice: other[0] || null, pitch: opt.voice === "m" ? 0.6 : 1.4 };
   }
 
+  // 読み方の直し：作品ごとの辞書（front matter の yomi）と、記号の読み飛ばし
+  var yomi = [];
+  function loadYomi() {
+    var dict = {};
+    try { dict = JSON.parse(article.dataset.yomi || "{}"); } catch (e) {}
+    yomi = Object.keys(dict).sort(function (a, b) { return b.length - a.length; }).map(function (k) { return [k, dict[k]]; });
+  }
+  function reading(text) {
+    yomi.forEach(function (p) { text = text.split(p[0]).join(p[1]); });
+    return text.replace(/[〈〉《》【】]/g, "、").replace(/[…‥]+|[―—─]{2,}/g, "、").replace(/、+/g, "、").replace(/、([。！？」』])/g, "$1").replace(/^、|、$/g, "");
+  }
+
   // 本文を読む単位に分ける（長い段落は句点で区切る。長い発話が途中で止まるブラウザがあるため）
   var article, panel, chunks = [], pos = 0, state = "idle", gen = 0;
   function collect() {
@@ -67,7 +79,7 @@
     pos = i;
     if (pos >= chunks.length) return finished();
     var c = chunks[pos];
-    var u = new SpeechSynthesisUtterance(c.text);
+    var u = new SpeechSynthesisUtterance(reading(c.text));
     var v = pickVoice();
     u.lang = "ja-JP";
     if (v.voice) u.voice = v.voice;
@@ -192,6 +204,7 @@
     panel = document.querySelector(".tts");
     if (!article || !panel) return;
     collect();
+    loadYomi();
     panel.hidden = false;
     panel.querySelector(".tts-play").addEventListener("click", play);
     panel.querySelector(".tts-stop").addEventListener("click", stop);
