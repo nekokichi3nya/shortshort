@@ -221,6 +221,8 @@ a { color: var(--accent); }
 }
 .chip:hover { border-color: var(--line-strong); color: var(--text); }
 .chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); box-shadow: var(--glow); }
+.chips-read { align-items: center; }
+.chips-label { color: var(--accent); font-size: 11px; margin-right: 4px; }
 .picks { display: flex; flex-wrap: wrap; gap: 8px 12px; }
 .pick[hidden] { display: none; }
 .pick {
@@ -497,6 +499,14 @@ html[data-fs="l"] .story-body { font-size: 20px; }
 .random-btn:hover { border-color: var(--accent); box-shadow: var(--glow); }
 .random-btn[hidden] { display: none; }
 .read-count { color: var(--text-dim); font-size: 12px; }
+.read-reset, .read-toggle {
+  padding: 4px 10px; background: transparent; border: 1px solid var(--line); border-radius: 4px;
+  color: var(--text-dim); font-size: 11px; cursor: pointer;
+}
+.read-reset:hover, .read-toggle:hover { border-color: var(--line-strong); color: var(--text); }
+.read-reset[hidden], .read-toggle[hidden] { display: none; }
+.read-toggle-wrap { text-align: center; margin: 16px 0 0; }
+.read-toggle[aria-pressed="true"] { border-color: var(--accent-2); color: var(--accent-2); }
 .card-read { margin-left: 10px; padding: 1px 6px; border: 1px solid var(--accent-2); border-radius: 3px; color: var(--accent-2); font-size: 10px; }
 .cards li.is-read .card { border-color: rgba(180, 140, 255, 0.3); }
 .cards li.is-read .card::before { background: var(--accent-2); }

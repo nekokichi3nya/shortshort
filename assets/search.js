@@ -1,16 +1,17 @@
-// トップページの作品検索、ジャンル・タグ・評価・感想での絞り込みと並べ替え（静的サイトなのでブラウザ側で行う）
+// トップページの作品検索、ジャンル・タグ・既読・評価・感想での絞り込みと並べ替え（静的サイトなのでブラウザ側で行う）
 (function () {
   var input = document.getElementById("q");
   var status = document.getElementById("finder-status");
   var empty = document.getElementById("empty");
   var items = Array.prototype.slice.call(document.querySelectorAll(".cards li[data-slug]"));
   var chips = Array.prototype.slice.call(document.querySelectorAll(".chip[data-genre]"));
+  var readChips = Array.prototype.slice.call(document.querySelectorAll(".chip[data-read]"));
   if (!input || !items.length) return;
 
   var params = new URLSearchParams(location.search);
   var state = {
     q: params.get("q") || "", genre: params.get("genre") || "", tag: params.get("tag") || "",
-    sort: params.get("sort") || "", min: params.get("min") || "", r: params.get("r") || "",
+    read: params.get("read") || "", sort: params.get("sort") || "", min: params.get("min") || "", r: params.get("r") || "",
   };
   var list = items.length ? items[0].parentNode : null;
   var picks = { sort: document.getElementById("sort"), min: document.getElementById("min"), r: document.getElementById("r") };
@@ -33,7 +34,13 @@
     return r && r.reactions ? r.reactions[state.r] || 0 : 0;
   }
 
+  // 既読の記録は reader.js が localStorage の read-stories に入れている
+  function readList() {
+    try { return JSON.parse(localStorage.getItem("read-stories") || "[]"); } catch (e) { return []; }
+  }
+
   function apply() {
+    var done = readList();
     var words = state.q.split(/[\s　]+/).map(norm).filter(Boolean);
     var shown = 0;
     var ratingsReady = !!window.RATINGS;
@@ -41,6 +48,10 @@
       var d = index[li.dataset.slug];
       var ok = true;
       var rt = ratingOf(li.dataset.slug);
+      if (state.read) {
+        var isRead = done.indexOf(li.dataset.slug) >= 0;
+        if ((state.read === "read") !== isRead) ok = false;
+      }
       if (ratingsReady && state.min && !(rt && rt.avg >= Number(state.min))) ok = false;
       if (ratingsReady && state.r && !reactionCount(li.dataset.slug)) ok = false;
       var badge = li.querySelector(".card-reaction");
@@ -70,7 +81,8 @@
     }
     sorted.forEach(function (li) { list.appendChild(li); });
     chips.forEach(function (c) { c.setAttribute("aria-pressed", String(c.dataset.genre === state.genre)); });
-    var active = state.q || state.genre || state.tag || state.min || state.r;
+    readChips.forEach(function (c) { c.setAttribute("aria-pressed", String(c.dataset.read === state.read)); });
+    var active = state.q || state.genre || state.tag || state.read || state.min || state.r;
     status.innerHTML = "";
     if (active) {
       status.appendChild(document.createTextNode(shown + " / " + items.length + " FILES"));
@@ -92,6 +104,7 @@
     if (state.q) p.set("q", state.q);
     if (state.genre) p.set("genre", state.genre);
     if (state.tag) p.set("tag", state.tag);
+    if (state.read) p.set("read", state.read);
     if (state.sort) p.set("sort", state.sort);
     if (state.min) p.set("min", state.min);
     if (state.r) p.set("r", state.r);
@@ -104,6 +117,9 @@
   input.addEventListener("input", function () { state.q = input.value.trim(); sync(); });
   chips.forEach(function (c) {
     c.addEventListener("click", function () { state.genre = c.dataset.genre; sync(); });
+  });
+  readChips.forEach(function (c) {
+    c.addEventListener("click", function () { state.read = c.dataset.read; sync(); });
   });
 
   Object.keys(picks).forEach(function (k) {

@@ -1,4 +1,4 @@
-// 既読マーク・ランダムに1作・文字サイズ切り替え（記録はこのブラウザの中だけ）
+// 既読マーク（未読に戻すことも可）・ランダムに1作・文字サイズ切り替え（記録はこのブラウザの中だけ）
 (function () {
   var BASE = window.SITE_BASE || "";
 
@@ -13,15 +13,41 @@
   // 既読：作品の最後（END）まで表示されたら読んだことにする
   var article = document.querySelector("article[data-read-slug]");
   var end = document.querySelector(".story-end");
-  if (article && end && "IntersectionObserver" in window) {
+  var toggle = document.querySelector(".read-toggle");
+  var io = null;
+  function setRead(slug, on) {
+    read = load("read-stories", []);
+    var i = read.indexOf(slug);
+    if (on && i < 0) read.push(slug);
+    if (!on && i >= 0) read.splice(i, 1);
+    save("read-stories", read);
+    markToggle();
+  }
+  function markToggle() {
+    if (!toggle || !article) return;
+    var on = read.indexOf(article.dataset.readSlug) >= 0;
+    toggle.textContent = on ? "既読 ✓ ・ 未読に戻す" : "既読にする";
+    toggle.setAttribute("aria-pressed", String(on));
+    toggle.hidden = false;
+  }
+  if (article) {
     var slug = article.dataset.readSlug;
-    var io = new IntersectionObserver(function (entries) {
-      if (!entries[0].isIntersecting) return;
-      io.disconnect();
-      read = load("read-stories", []);
-      if (read.indexOf(slug) < 0) { read.push(slug); save("read-stories", read); }
-    });
-    io.observe(end);
+    if (end && "IntersectionObserver" in window) {
+      io = new IntersectionObserver(function (entries) {
+        if (!entries[0].isIntersecting) return;
+        io.disconnect();
+        setRead(slug, true);
+      });
+      io.observe(end);
+    }
+    if (toggle) {
+      // 手で切り替えたら、このページを開いている間は自動の既読付けをしない
+      toggle.addEventListener("click", function () {
+        if (io) io.disconnect();
+        setRead(slug, read.indexOf(slug) < 0);
+      });
+      markToggle();
+    }
   }
 
   // 一覧：読んだ作品のカードに印を付ける
@@ -35,9 +61,26 @@
     if (badge) badge.hidden = false;
   });
   var counter = document.querySelector(".read-count");
+  var reset = document.querySelector(".read-reset");
   if (counter && readHere) {
     counter.textContent = "READ " + readHere + " / " + cards.length;
     counter.hidden = false;
+    if (reset) reset.hidden = false;
+  }
+  if (reset) {
+    reset.addEventListener("click", function () {
+      if (!confirm("読んだ記録をすべて消して、未読に戻しますか？")) return;
+      read = [];
+      save("read-stories", read);
+      Array.prototype.forEach.call(cards, function (li) {
+        li.classList.remove("is-read");
+        var badge = li.querySelector(".card-read");
+        if (badge) badge.hidden = true;
+      });
+      counter.hidden = true;
+      reset.hidden = true;
+      if (window.finderRefresh) window.finderRefresh();
+    });
   }
 
   // ランダム：まだ読んでいない作品を優先し、いま開いている作品は除く
