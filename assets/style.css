@@ -545,6 +545,35 @@ html[data-wm="v"] .story-body {
 .cards li.is-read .card { border-color: rgba(180, 140, 255, 0.3); }
 .cards li.is-read .card::before { background: var(--accent-2); }
 
+/* 読み上げ */
+.tts { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+.tts[hidden] { display: none; }
+.tts .view-switch { margin-top: 10px; }
+.tts-main { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.tts-label { color: var(--accent); font-size: 11px; margin-right: 4px; }
+.tts-play, .tts-stop {
+  padding: 6px 14px; background: transparent; border: 1px solid var(--line-strong); border-radius: 4px;
+  color: var(--text); font: inherit; font-size: 13px; cursor: pointer;
+}
+.tts-play { border-color: var(--accent); color: var(--accent); }
+.tts-play:hover, .tts-stop:hover:not(:disabled) { box-shadow: var(--glow); }
+.tts-play[aria-pressed="true"] { background: rgba(110, 231, 255, 0.1); }
+.tts-stop:disabled { opacity: 0.4; cursor: default; }
+.tts-note { margin: 10px 0 0; color: var(--text-dim); font-size: 12px; }
+.tts-note[hidden] { display: none; }
+.story-body p.tts-now, .story-title.tts-now { color: var(--accent); text-shadow: 0 0 12px rgba(110, 231, 255, 0.35); }
+.tts-dock {
+  position: fixed; left: 50%; bottom: 16px; z-index: 20; transform: translateX(-50%);
+  display: none; align-items: center; gap: 8px; width: min(440px, calc(100vw - 32px)); box-sizing: border-box;
+  padding: 8px 10px 8px 14px; border: 1px solid var(--line-strong); border-radius: 6px;
+  background: rgba(5, 7, 13, 0.92); box-shadow: var(--glow); backdrop-filter: blur(6px);
+}
+html.tts-on .tts-dock { display: flex; }
+.tts-dock .mono { color: var(--accent); font-size: 11px; }
+.tts-dock-title { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--text); font-size: 13px; min-width: 0; flex: 1; }
+.tts-dock .tts-play, .tts-dock .tts-stop { flex: none; padding: 6px 10px; }
+html.tts-on .site-footer { padding-bottom: 88px; }
+
 @media (max-width: 600px) {
   .site-header { padding: 16px; }
   .brand-tag { display: none; }

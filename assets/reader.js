@@ -1,5 +1,6 @@
 // 既読マーク（未読に戻すことも可）・お気に入り・次の一作・NEW・ランダムに1作・文字サイズと縦書きの切り替え（記録はこのブラウザの中だけ）
-(function () {
+// 読み上げの連続再生でページの中身を差し替えたときも、もう一度呼べるようにしておく
+window.readerInit = function () {
   var BASE = window.SITE_BASE || "";
 
   function load(key, fallback) {
@@ -178,4 +179,5 @@
     });
   });
   markWm();
-})();
+};
+window.readerInit();

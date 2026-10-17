@@ -217,6 +217,19 @@ def font_switch():
             f'<div class="fs-switch wm-switch" role="group" aria-label="縦書き・横書き"><span class="mono">LAYOUT</span>{wm}</div></div>')
 
 
+def tts_panel():
+    """読み上げの操作パネル。対応していないブラウザでは speech.js が表示しないまま。"""
+    def group(label, attr, items):
+        btns = "".join(f'<button type="button" {attr}="{k}" aria-pressed="false">{v}</button>' for k, v in items)
+        return f'<div class="fs-switch" role="group" aria-label="{label}"><span class="mono">{label}</span>{btns}</div>'
+    return f"""
+        <div class="tts" hidden>
+          <div class="tts-main"><span class="mono tts-label">VOICE</span><button type="button" class="tts-play">▶ 読み上げる</button><button type="button" class="tts-stop" disabled>■ 停止</button></div>
+          <div class="view-switch">{group("声", "data-voice", (("f", "女性"), ("m", "男性")))}{group("速さ", "data-rate", (("slow", "ゆっくり"), ("normal", "ふつう"), ("fast", "はやめ"), ("faster", "はやい")))}{group("次の作品へ", "data-auto", (("off", "止める"), ("on", "続けて読む")))}</div>
+          <p class="tts-note" hidden></p>
+        </div>"""
+
+
 def next_reads(s, stories):
     """読み終わりに出す「次の一作」。同じジャンル・共通のタグが多い順、同点なら新しい順。
     未読を優先して3作を選ぶのは reader.js（JS がなければ先頭の3作を出す）。"""
@@ -342,7 +355,7 @@ def build():
         <p class="mono story-meta">FILE No.{s['no']} // {esc(s['date'])}</p>
         <h1 class="story-title">{esc(s['title'])}</h1>
         <p class="story-byline"><a href="{BASE_PATH}{ABOUT_PATH}" rel="author">{esc(site['author'])}</a></p>
-        <p class="mono story-stats">{s['chars']:,} 字 · 約 {minutes} 分</p>{font_switch()}{story_labels(s)}
+        <p class="mono story-stats">{s['chars']:,} 字 · 約 {minutes} 分</p>{font_switch()}{tts_panel()}{story_labels(s)}
       </header>
       <div class="story-body">
 {s['html']}
@@ -353,7 +366,8 @@ def build():
       {''.join(nav)}
     </nav>
     <p class="random-wrap">{RANDOM_BUTTON}</p>
-  </main>{"" if is_hidden else reviews_script()}"""
+  </main>{"" if is_hidden else reviews_script()}
+  <script src="{asset("speech.js")}" defer></script>"""
         jsonld = {
             "@context": "https://schema.org",
             "@type": "ShortStory",

@@ -1,5 +1,6 @@
 // 星評価（保存先は Google スプレッドシート。reviews/apps-script.gs を参照）
-(function () {
+// 読み上げの連続再生でページの中身を差し替えたときも、もう一度呼べるようにしておく
+window.reviewsInit = function () {
   var API = window.REVIEWS_ENDPOINT;
   if (!API) return;
 
@@ -171,4 +172,5 @@
   });
 
   load();
-})();
+};
+window.reviewsInit();
