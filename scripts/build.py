@@ -196,6 +196,7 @@ def share_link(s):
     <p class="share"><a class="share-x" href="{esc(href)}" target="_blank" rel="noopener">Xでシェアする</a></p>"""
 
 
+READ_TOGGLE = '\n      <p class="read-toggle-wrap"><button type="button" class="read-toggle mono" hidden></button></p>'
 RANDOM_BUTTON = '<button type="button" class="random-btn" hidden><span class="mono">RANDOM</span>ランダムに1作読む</button>'
 
 
@@ -309,7 +310,7 @@ def build():
       <div class="story-body">
 {s['html']}
       </div>
-      <p class="story-end mono" aria-hidden="true">— END —</p>
+      <p class="story-end mono" aria-hidden="true">— END —</p>{"" if is_hidden else READ_TOGGLE}
     </article>{"" if is_hidden else share_link(s)}{"" if is_hidden else reviews_section(s)}
     <nav class="story-nav" aria-label="作品間の移動">
       {''.join(nav)}
@@ -336,7 +337,7 @@ def build():
                             body=body, og_type="article", jsonld=None if is_hidden else jsonld,
                             noindex=is_hidden), encoding="utf-8")
 
-    # トップページ（検索・ジャンル絞り込みは assets/search.js がクライアント側で行う）
+    # トップページ（検索・ジャンル・既読の絞り込みは assets/search.js がクライアント側で行う）
     def card(s):
         labels = ""
         if s["genre"] or s["tags"]:
@@ -359,6 +360,12 @@ def build():
       <div class="chips" role="group" aria-label="ジャンルで絞り込む">
         <button type="button" class="chip" data-genre="" aria-pressed="true">すべて</button>{chips}
       </div>""" if genres else ""
+    # 既読での絞り込み（記録はブラウザの localStorage にあるので search.js が判定する）
+    read_bar = """
+      <div class="chips chips-read" role="group" aria-label="既読で絞り込む">
+        <span class="mono chips-label">READ</span>
+        <button type="button" class="chip" data-read="" aria-pressed="true">すべて</button><button type="button" class="chip" data-read="unread">未読</button><button type="button" class="chip" data-read="read">既読</button>
+      </div>"""
     # 評価・感想での並べ替えと絞り込み（評価機能があるときだけ）
     rank_bar = ""
     if REVIEWS_API:
@@ -374,14 +381,14 @@ def build():
       <p class="mono hero-eyebrow">// ARCHIVE ONLINE · {len(stories)} FILES</p>
       <h1 class="hero-title">{esc(site['title'])}</h1>
       <p class="hero-desc">{esc(site['description'])}</p>
-      <p class="hero-actions">{RANDOM_BUTTON}<span class="mono read-count" hidden></span></p>
+      <p class="hero-actions">{RANDOM_BUTTON}<span class="mono read-count" hidden></span><button type="button" class="read-reset mono" hidden>すべて未読に戻す</button></p>
     </section>
     <h2 class="section-label mono">STORIES</h2>
     <form class="finder" role="search" onsubmit="return false">
       <label class="search">
         <span class="mono search-label">SEARCH</span>
         <input type="search" id="q" name="q" placeholder="タイトル・本文・タグで検索" autocomplete="off">
-      </label>{genre_bar}{rank_bar}
+      </label>{genre_bar}{read_bar}{rank_bar}
       <p class="mono finder-status" id="finder-status" aria-live="polite"></p>
     </form>
     <ul class="cards">
