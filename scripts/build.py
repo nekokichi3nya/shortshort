@@ -4,6 +4,7 @@
 使い方: python3 scripts/build.py
 """
 import datetime
+import hashlib
 import html
 import json
 import re
@@ -16,6 +17,12 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "_site"
 STORIES = ROOT / "stories"
 ASSETS = ROOT / "assets"
+
+
+def asset(name):
+    """CSS/JS の URL。中身が変わると ?v= が変わり、ブラウザの古いキャッシュを使わせない"""
+    v = hashlib.sha1((ASSETS / name).read_bytes()).hexdigest()[:8]
+    return f"{BASE_PATH}/assets/{name}?v={v}"
 
 site = json.loads((ROOT / "site.json").read_text(encoding="utf-8"))
 BASE = site["url"].rstrip("/")
@@ -154,10 +161,10 @@ def page(*, title, description, path, body, og_type="website", jsonld=None, noin
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600&family=Zen+Kaku+Gothic+New:wght@500;700&family=Orbitron:wght@500;700&family=Share+Tech+Mono&display=swap">
-  <link rel="stylesheet" href="{BASE_PATH}/assets/style.css">{ld}
+  <link rel="stylesheet" href="{asset("style.css")}">{ld}
   <script>try {{ var f = localStorage.getItem("font-size"); if (f) document.documentElement.dataset.fs = f; }} catch (e) {{}}</script>
   <script>window.SITE_BASE = "{BASE_PATH}";</script>
-  <script src="{BASE_PATH}/assets/reader.js" defer></script>
+  <script src="{asset("reader.js")}" defer></script>
 </head>
 <body>
   <div class="stars" aria-hidden="true"></div>
@@ -221,7 +228,7 @@ def reviews_script():
         return ""
     return f"""
   <script>window.REVIEWS_ENDPOINT = {json.dumps(REVIEWS_API)};</script>
-  <script src="{BASE_PATH}/assets/reviews.js" defer></script>"""
+  <script src="{asset("reviews.js")}" defer></script>"""
 
 
 def reviews_section(s):
@@ -397,7 +404,7 @@ def build():
     <p class="empty" id="empty" hidden>該当する作品は見つかりませんでした。</p>
   </main>
   <script>window.SEARCH_INDEX = "{BASE_PATH}/search.json";</script>
-  <script src="{BASE_PATH}/assets/search.js" defer></script>{reviews_script()}"""
+  <script src="{asset("search.js")}" defer></script>{reviews_script()}"""
     jsonld = {
         "@context": "https://schema.org",
         "@type": "WebSite",
