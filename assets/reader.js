@@ -1,4 +1,4 @@
-// 既読マーク（未読に戻すことも可）・ランダムに1作・文字サイズ切り替え（記録はこのブラウザの中だけ）
+// 既読マーク（未読に戻すことも可）・お気に入り・次の一作・NEW・ランダムに1作・文字サイズと縦書きの切り替え（記録はこのブラウザの中だけ）
 (function () {
   var BASE = window.SITE_BASE || "";
 
@@ -9,6 +9,7 @@
     try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
   }
   var read = load("read-stories", []);
+  var favs = load("fav-stories", []);
 
   // 既読：作品の最後（END）まで表示されたら読んだことにする
   var article = document.querySelector("article[data-read-slug]");
@@ -49,6 +50,51 @@
       markToggle();
     }
   }
+
+  // お気に入り：作品ページのボタンで付け外しする
+  var favToggle = document.querySelector(".fav-toggle");
+  if (article && favToggle) {
+    var favSlug = article.dataset.readSlug;
+    var markFav = function () {
+      var on = favs.indexOf(favSlug) >= 0;
+      favToggle.textContent = on ? "★ お気に入り済み" : "☆ お気に入り";
+      favToggle.setAttribute("aria-pressed", String(on));
+      favToggle.hidden = false;
+    };
+    favToggle.addEventListener("click", function () {
+      favs = load("fav-stories", []);
+      var i = favs.indexOf(favSlug);
+      if (i >= 0) favs.splice(i, 1); else favs.push(favSlug);
+      save("fav-stories", favs);
+      markFav();
+    });
+    markFav();
+  }
+
+  // 次の一作：候補（関連が強い順）から未読を優先して3作
+  var nextItems = document.querySelectorAll(".next-list li[data-slug]");
+  if (nextItems.length) {
+    var list = Array.prototype.slice.call(nextItems);
+    var unreadNext = list.filter(function (li) { return read.indexOf(li.dataset.slug) < 0; });
+    var pick = (unreadNext.length ? unreadNext : list).slice(0, 3);
+    list.forEach(function (li) { li.hidden = pick.indexOf(li) < 0; });
+    pick.forEach(function (li) { li.parentNode.appendChild(li); });
+  }
+
+  // 一覧：公開から7日以内の作品に NEW を付ける（新しい順に3作まで。日付は日本時間の YYYY-MM-DD）
+  var today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+  var newCount = 0;
+  Array.prototype.forEach.call(document.querySelectorAll(".cards li[data-date]"), function (li) {
+    var days = (Date.parse(today) - Date.parse(li.dataset.date)) / 86400000;
+    var badge = li.querySelector(".card-new");
+    if (badge && days >= 0 && days < 7 && newCount < 3) { badge.hidden = false; newCount++; }
+  });
+
+  // 一覧：お気に入りのカードに印を付ける
+  Array.prototype.forEach.call(document.querySelectorAll(".cards li[data-slug]"), function (li) {
+    var badge = li.querySelector(".card-fav");
+    if (badge && favs.indexOf(li.dataset.slug) >= 0) badge.hidden = false;
+  });
 
   // 一覧：読んだ作品のカードに印を付ける
   var cards = document.querySelectorAll(".cards li[data-slug]");
@@ -104,7 +150,7 @@
 
   // 文字サイズ（<head> で先に反映済み。ここではボタンの状態と切り替えだけ）
   var root = document.documentElement;
-  var fsButtons = document.querySelectorAll(".fs-switch button");
+  var fsButtons = document.querySelectorAll(".fs-switch button[data-fs]");
   function markFs() {
     var cur = root.dataset.fs || "m";
     Array.prototype.forEach.call(fsButtons, function (b) { b.setAttribute("aria-pressed", String(b.dataset.fs === cur)); });
@@ -117,4 +163,19 @@
     });
   });
   markFs();
+
+  // 縦書き・横書き（<head> で先に反映済み）
+  var wmButtons = document.querySelectorAll(".wm-switch button[data-wm]");
+  function markWm() {
+    var cur = root.dataset.wm || "h";
+    Array.prototype.forEach.call(wmButtons, function (b) { b.setAttribute("aria-pressed", String(b.dataset.wm === cur)); });
+  }
+  Array.prototype.forEach.call(wmButtons, function (b) {
+    b.addEventListener("click", function () {
+      root.dataset.wm = b.dataset.wm;
+      try { localStorage.setItem("writing-mode", b.dataset.wm); } catch (e) {}
+      markWm();
+    });
+  });
+  markWm();
 })();

@@ -162,7 +162,8 @@ def page(*, title, description, path, body, og_type="website", jsonld=None, noin
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600&family=Zen+Kaku+Gothic+New:wght@500;700&family=Orbitron:wght@500;700&family=Share+Tech+Mono&display=swap">
   <link rel="stylesheet" href="{asset("style.css")}">{ld}
-  <script>try {{ var f = localStorage.getItem("font-size"); if (f) document.documentElement.dataset.fs = f; }} catch (e) {{}}</script>
+  <script>try {{ var f = localStorage.getItem("font-size"); if (f) document.documentElement.dataset.fs = f;
+    var w = localStorage.getItem("writing-mode"); if (w) document.documentElement.dataset.wm = w; }} catch (e) {{}}</script>
   <script>window.SITE_BASE = "{BASE_PATH}";</script>
   <script src="{asset("reader.js")}" defer></script>
 </head>
@@ -203,14 +204,43 @@ def share_link(s):
     <p class="share"><a class="share-x" href="{esc(href)}" target="_blank" rel="noopener">Xでシェアする</a></p>"""
 
 
-READ_TOGGLE = '\n      <p class="read-toggle-wrap"><button type="button" class="read-toggle mono" hidden></button></p>'
+READ_TOGGLE = ('\n      <p class="read-toggle-wrap"><button type="button" class="read-toggle mono" hidden></button>'
+               '<button type="button" class="fav-toggle mono" hidden></button></p>')
 RANDOM_BUTTON = '<button type="button" class="random-btn" hidden><span class="mono">RANDOM</span>ランダムに1作読む</button>'
 
 
 def font_switch():
     btns = "".join(f'<button type="button" data-fs="{k}" aria-label="文字サイズ{v}">{v}</button>'
                    for k, v in (("s", "小"), ("m", "中"), ("l", "大")))
-    return f'\n        <div class="fs-switch" role="group" aria-label="文字サイズ"><span class="mono">TEXT</span>{btns}</div>'
+    wm = "".join(f'<button type="button" data-wm="{k}" aria-label="{v}書き">{v}</button>' for k, v in (("h", "横"), ("v", "縦")))
+    return (f'\n        <div class="view-switch"><div class="fs-switch" role="group" aria-label="文字サイズ"><span class="mono">TEXT</span>{btns}</div>'
+            f'<div class="fs-switch wm-switch" role="group" aria-label="縦書き・横書き"><span class="mono">LAYOUT</span>{wm}</div></div>')
+
+
+def next_reads(s, stories):
+    """読み終わりに出す「次の一作」。同じジャンル・共通のタグが多い順、同点なら新しい順。
+    未読を優先して3作を選ぶのは reader.js（JS がなければ先頭の3作を出す）。"""
+    def score(o):
+        return (2 if s["genre"] and o["genre"] == s["genre"] else 0) + len(set(s["tags"]) & set(o["tags"]))
+    others = sorted((o for o in stories if o is not s), key=lambda o: (score(o), o["date"], o["no"]), reverse=True)
+    if not others:
+        return ""
+    items = "\n".join(f"""        <li data-slug="{esc(o['slug'])}"{" hidden" if i >= 3 else ""}>
+          <a class="card card-mini" href="{BASE_PATH}{story_url(o)}">
+            <span class="mono card-no">No.{o['no']}</span>
+            <span class="card-title">{esc(o['title'])}</span>
+            <span class="card-desc">{esc(o['description'])}</span>
+            <span class="mono card-meta">約 {read_minutes(o)} 分</span>
+          </a>
+        </li>""" for i, o in enumerate(others))
+    return f"""
+    <section class="next-reads">
+      <h2 class="section-label mono">NEXT FILES</h2>
+      <p class="next-lead">次に読むなら</p>
+      <ul class="next-list">
+{items}
+      </ul>
+    </section>"""
 
 
 def filter_url(key, value):
@@ -318,7 +348,7 @@ def build():
 {s['html']}
       </div>
       <p class="story-end mono" aria-hidden="true">— END —</p>{"" if is_hidden else READ_TOGGLE}
-    </article>{"" if is_hidden else share_link(s)}{"" if is_hidden else reviews_section(s)}
+    </article>{"" if is_hidden else share_link(s)}{"" if is_hidden else reviews_section(s)}{"" if is_hidden else next_reads(s, stories)}
     <nav class="story-nav" aria-label="作品間の移動">
       {''.join(nav)}
     </nav>
@@ -351,9 +381,9 @@ def build():
             parts = [f'<span class="label label-genre">{esc(s["genre"])}</span>'] if s["genre"] else []
             parts += [f'<span class="label">#{esc(t)}</span>' for t in s["tags"]]
             labels = f'\n          <span class="labels">{"".join(parts)}</span>'
-        return f"""      <li data-slug="{esc(s['slug'])}">
+        return f"""      <li data-slug="{esc(s['slug'])}" data-date="{esc(s['date'])}">
         <a class="card" href="{BASE_PATH}{story_url(s)}">
-          <span class="mono card-no">No.{s['no']}<span class="card-read" hidden>READ</span></span>
+          <span class="mono card-no">No.{s['no']}<span class="card-new" hidden>NEW</span><span class="card-read" hidden>READ</span><span class="card-fav" hidden aria-label="お気に入り">★</span></span>
           <h2 class="card-title">{esc(s['title'])}</h2>
           <p class="card-desc">{esc(s['description'])}</p>{labels}
           <span class="mono card-meta">{esc(s['date'])} · {s['chars']:,} 字 · 約 {read_minutes(s)} 分<span class="card-rating" data-rating-for="{esc(s['slug'])}" hidden></span><span class="card-reaction" hidden></span></span>
@@ -367,11 +397,11 @@ def build():
       <div class="chips" role="group" aria-label="ジャンルで絞り込む">
         <button type="button" class="chip" data-genre="" aria-pressed="true">すべて</button>{chips}
       </div>""" if genres else ""
-    # 既読での絞り込み（記録はブラウザの localStorage にあるので search.js が判定する）
+    # 既読・お気に入りでの絞り込み（記録はブラウザの localStorage にあるので search.js が判定する）
     read_bar = """
-      <div class="chips chips-read" role="group" aria-label="既読で絞り込む">
+      <div class="chips chips-read" role="group" aria-label="既読・お気に入りで絞り込む">
         <span class="mono chips-label">READ</span>
-        <button type="button" class="chip" data-read="" aria-pressed="true">すべて</button><button type="button" class="chip" data-read="unread">未読</button><button type="button" class="chip" data-read="read">既読</button>
+        <button type="button" class="chip" data-read="" aria-pressed="true">すべて</button><button type="button" class="chip" data-read="unread">未読</button><button type="button" class="chip" data-read="read">既読</button><button type="button" class="chip" data-read="fav">★ お気に入り</button>
       </div>"""
     # 評価・感想での並べ替えと絞り込み（評価機能があるときだけ）
     rank_bar = ""
