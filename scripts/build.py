@@ -51,6 +51,7 @@ def x_url(value):
 
 
 AUTHOR_X = x_url(site.get("author_x"))
+AUTHOR_KAKUYOMU = (site.get("author_kakuyomu") or "").strip()
 AUTHOR = {"@type": "Person", "name": site["author"], "url": BASE + ABOUT_PATH,
           **({"sameAs": [AUTHOR_X]} if AUTHOR_X else {})}
 
@@ -483,8 +484,13 @@ def build():
                                          path="/", body=body, jsonld=jsonld), encoding="utf-8")
 
     # 作者プロフィール
+    links = []
+    if AUTHOR_X:
+        links.append(f'<a class="profile-x" href="{esc(AUTHOR_X)}" rel="me noopener" target="_blank">X（旧Twitter）で{esc(site['author'])}をフォロー</a>')
+    if AUTHOR_KAKUYOMU:
+        links.append(f'<a class="profile-x" href="{esc(AUTHOR_KAKUYOMU)}" rel="me noopener" target="_blank">カクヨムでも読む</a>')
     x_link = f"""
-      <p class="profile-links"><a class="profile-x" href="{esc(AUTHOR_X)}" rel="me noopener" target="_blank">X（旧Twitter）で{esc(site['author'])}をフォロー</a></p>""" if AUTHOR_X else ""
+      <p class="profile-links">{" ".join(links)}</p>""" if links else ""
     works = "\n".join(
         f'        <li><a href="{BASE_PATH}{story_url(s)}"><span class="mono">No.{s["no"]}</span><span class="profile-work-title">{esc(s["title"])}</span><span class="mono profile-work-date">{esc(s["date"])}</span></a></li>'
         for s in newest_first)
