@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""stories/*.md から静的サイトを _site/ に生成する（標準ライブラリのみ）。
+"""stories/*.md から静的サイトを _site/ に生成する（標準ライブラリのみ。作品ごとのOGP画像だけ Pillow を使う）。
 
 使い方: python3 scripts/build.py
 """
@@ -10,6 +10,7 @@ import json
 import re
 import shutil
 import subprocess
+import sys
 from urllib.parse import quote
 from pathlib import Path
 
@@ -30,6 +31,11 @@ BASE = site["url"].rstrip("/")
 BASE_PATH = re.sub(r"^https?://[^/]+", "", BASE)
 
 esc = html.escape
+
+sys.path.insert(0, str(ROOT / "scripts"))
+import ogp  # noqa: E402  作品ごとのOGP画像（Pillow とフォントがあるときだけ作る）
+
+OGP_DEFAULT = f"{BASE}/assets/ogp.png"
 
 ABOUT_PATH = "/about/"
 
@@ -134,7 +140,7 @@ def render_body(body):
     return "\n".join(parts)
 
 
-def page(*, title, description, path, body, og_type="website", jsonld=None, noindex=False):
+def page(*, title, description, path, body, og_type="website", jsonld=None, noindex=False, image=OGP_DEFAULT):
     url = BASE + path
     full_title = title if title == site["title"] else f"{title}｜{site['title']}"
     verify = site.get("google_site_verification", "").strip()
@@ -155,7 +161,9 @@ def page(*, title, description, path, body, og_type="website", jsonld=None, noin
   <meta property="og:description" content="{esc(description)}">
   <meta property="og:type" content="{og_type}">
   <meta property="og:url" content="{url}">
-  <meta property="og:image" content="{BASE}/assets/ogp.png">
+  <meta property="og:image" content="{image}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <meta property="og:locale" content="ja_JP">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#05070d">
@@ -336,6 +344,9 @@ def build():
     newest_first = list(reversed(stories))
 
     # 作品ページ
+    make_ogp = ogp.available()
+    if not make_ogp:
+        print("note: Pillow かフォントが無いので、作品ごとのOGP画像は作らず共通画像を使います")
     pages = [(s, stories[i - 1] if i > 0 else None, stories[i + 1] if i + 1 < len(stories) else None)
              for i, s in enumerate(stories)] + [(s, None, None) for s in hidden]
     for s, prev_s, next_s in pages:
@@ -384,11 +395,19 @@ def build():
             "url": BASE + story_url(s),
             "isPartOf": {"@type": "WebSite", "name": site["title"], "url": BASE + "/"},
         }
+        image = OGP_DEFAULT
+        if make_ogp:
+            png = OUT / "assets" / "ogp" / f"{s['slug']}.png"
+            ogp.render(png, no=s["no"], title=s["title"], description=s["description"],
+                       site_title=site["title"], author=site["author"])
+            # 中身が変わればURLも変わり、SNS側の古いキャッシュを使わせない
+            image = f"{BASE}/assets/ogp/{quote(s['slug'])}.png?v={hashlib.sha1(png.read_bytes()).hexdigest()[:8]}"
+            jsonld["image"] = image
         out = OUT / "works" / s["slug"] / "index.html"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(page(title=s["title"], description=s["description"], path=story_url(s),
                             body=body, og_type="article", jsonld=None if is_hidden else jsonld,
-                            noindex=is_hidden), encoding="utf-8")
+                            noindex=is_hidden, image=image), encoding="utf-8")
 
     # トップページ（検索・ジャンル・既読の絞り込みは assets/search.js がクライアント側で行う）
     def card(s):
