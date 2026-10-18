@@ -5,6 +5,7 @@ description: 何ヶ月ぶりかに鳴った電話。「オレだけど。おじ�
 genre: ヒューマン
 tags: AI, 詐欺, 老人
 yomi: 一行=いちぎょう
+kakuyomu: yes
 ---
 
 　昼下がりに、電話が鳴った。

@@ -80,6 +80,9 @@ def parse_story(path):
     meta["tags"] = [t.strip() for t in re.split(r"[,、，]", meta.get("tags", "")) if t.strip()]
     # 読み上げの読み方（「yomi: 千夏=ちなつ, 一日=いちにち」）。画面の文字はそのまま
     meta["yomi"] = dict(p.split("=", 1) for p in (q.strip() for q in re.split(r"[,、，]", meta.get("yomi", ""))) if "=" in p)
+    # カクヨムにも載せた作品（「kakuyomu: 作品URL」。URLが無ければ「kakuyomu: yes」で作者ページへ）
+    k = meta.get("kakuyomu", "").strip()
+    meta["kakuyomu_url"] = k if k.startswith("http") else (AUTHOR_KAKUYOMU if k.lower() in ("yes", "true", "1") else "")
     meta["text"] = re.sub(r"\s+", "", body)
     meta["chars"] = len(meta["text"])
     meta.setdefault("description", excerpt(body))
@@ -316,6 +319,13 @@ def reviews_section(s):
     </section>"""
 
 
+def kakuyomu_link(s):
+    """カクヨムにも掲載している作品なら、作品ページにリンクを出す。"""
+    if not s["kakuyomu_url"]:
+        return ""
+    return f'\n        <p class="story-kakuyomu"><a href="{esc(s["kakuyomu_url"])}" rel="noopener" target="_blank">カクヨムにも掲載中</a></p>'
+
+
 def story_labels(s):
     """作品ページ用のジャンル・タグ（一覧の絞り込みへのリンク）。"""
     items = []
@@ -369,7 +379,7 @@ def build():
         <p class="mono story-meta">FILE No.{s['no']} // {esc(s['date'])}</p>
         <h1 class="story-title">{esc(s['title'])}</h1>
         <p class="story-byline"><a href="{BASE_PATH}{ABOUT_PATH}" rel="author">{esc(site['author'])}</a></p>
-        <p class="mono story-stats">{s['chars']:,} 字 · 約 {minutes} 分</p>{font_switch()}{tts_panel()}{story_labels(s)}
+        <p class="mono story-stats">{s['chars']:,} 字 · 約 {minutes} 分</p>{kakuyomu_link(s)}{font_switch()}{tts_panel()}{story_labels(s)}
       </header>
       <div class="story-body">
 {s['html']}
@@ -419,7 +429,7 @@ def build():
             labels = f'\n          <span class="labels">{"".join(parts)}</span>'
         return f"""      <li data-slug="{esc(s['slug'])}" data-date="{esc(s['date'])}">
         <a class="card" href="{BASE_PATH}{story_url(s)}">
-          <span class="mono card-no">No.{s['no']}<span class="card-new" hidden>NEW</span><span class="card-read" hidden>READ</span><span class="card-fav" hidden aria-label="お気に入り">★</span></span>
+          <span class="mono card-no">No.{s['no']}<span class="card-new" hidden>NEW</span><span class="card-read" hidden>READ</span><span class="card-fav" hidden aria-label="お気に入り">★</span>{'<span class="card-kakuyomu">カクヨム</span>' if s["kakuyomu_url"] else ""}</span>
           <h2 class="card-title">{esc(s['title'])}</h2>
           <p class="card-desc">{esc(s['description'])}</p>{labels}
           <span class="mono card-meta">{esc(s['date'])} · {s['chars']:,} 字 · 約 {read_minutes(s)} 分<span class="card-rating" data-rating-for="{esc(s['slug'])}" hidden></span><span class="card-reaction" hidden></span></span>
