@@ -5,6 +5,7 @@ description: 別れた彼女を、AIでよみがえらせた。三年分の愛�
 genre: ホラー
 tags: AI, 恋愛
 yomi: 身体=からだ
+kakuyomu: yes
 ---
 
 　別れた彼女をAIでよみがえらせたのは、寂しさのせいだった。
