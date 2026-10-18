@@ -362,7 +362,7 @@ a.label:hover { border-color: var(--line-strong); color: var(--text); }
 .footer-author:hover { color: var(--accent); border-bottom-color: var(--accent); }
 
 /* 作者プロフィール */
-.profile-links { margin: 28px 0 0; }
+.profile-links { margin: 28px 0 0; display: flex; flex-wrap: wrap; gap: 10px; }
 .profile-x {
   display: inline-block;
   padding: 10px 20px;
