@@ -83,6 +83,8 @@ def parse_story(path):
     # カクヨムにも載せた作品（「kakuyomu: 作品URL」。URLが無ければ「kakuyomu: yes」で作者ページへ）
     k = meta.get("kakuyomu", "").strip()
     meta["kakuyomu_url"] = k if k.startswith("http") else (AUTHOR_KAKUYOMU if k.lower() in ("yes", "true", "1") else "")
+    # 二度目に開くと最後の一行だけが差し替わる（「reread: 差し替える一行」）。reader.js が判定する
+    meta["reread"] = meta.get("reread", "")
     # 時間限定の作品（「open: 2-4」で午前2時〜4時、読者の端末の時刻）。隠し作品と同じく番号・検索に含めない
     m = re.fullmatch(r"(\d{1,2})\s*-\s*(\d{1,2})", meta.get("open", "").strip())
     meta["open"] = (int(m.group(1)), int(m.group(2))) if m else None
@@ -377,7 +379,7 @@ def build():
             nav.append("<span></span>")
         minutes = read_minutes(s)
         body = f"""  <main class="reader">
-    <article{"" if is_hidden else f' data-read-slug="{esc(s["slug"])}"'}{f' data-open="{s["open"][0]}-{s["open"][1]}"' if s["open"] else ""}{f" data-yomi='{esc(json.dumps(s['yomi'], ensure_ascii=False))}'" if s["yomi"] else ""}>
+    <article{"" if is_hidden else f' data-read-slug="{esc(s["slug"])}"'}{f' data-open="{s["open"][0]}-{s["open"][1]}"' if s["open"] else ""}{f' data-reread="{esc(s["reread"])}"' if s.get("reread") else ""}{f" data-yomi='{esc(json.dumps(s['yomi'], ensure_ascii=False))}'" if s["yomi"] else ""}>
       <header class="story-header">
         <p class="mono story-meta">FILE No.{s['no']} // {esc(s['date'])}</p>
         <h1 class="story-title">{esc(s['title'])}</h1>
