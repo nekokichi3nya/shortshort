@@ -181,3 +181,24 @@ window.readerInit = function () {
   markWm();
 };
 window.readerInit();
+
+// 別のタブへ移るとタブ名が呼びかけに変わり、5秒以上たって戻ると「おかえりなさい」と迎える
+(function () {
+  var saved = "", left = 0, timer = 0;
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden") {
+      clearTimeout(timer);
+      if (!left) saved = document.title;
+      left = Date.now();
+      document.title = document.querySelector("article[data-read-slug]") ? "続きは、ここにあります" : "まだ読んでいない作品があります";
+      return;
+    }
+    if (!left) return;
+    var away = Date.now() - left;
+    left = 0;
+    if (away < 5000) { document.title = saved; return; }
+    var min = Math.floor(away / 60000);
+    document.title = min >= 10 ? "おかえりなさい。" + (min >= 120 ? Math.floor(min / 60) + "時間" : min + "分") + "ぶりですね" : "おかえりなさい";
+    timer = setTimeout(function () { document.title = saved; }, 4000);
+  });
+})();
