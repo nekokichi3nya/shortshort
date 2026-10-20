@@ -12,6 +12,29 @@ window.readerInit = function () {
   var read = load("read-stories", []);
   var favs = load("fav-stories", []);
 
+  // 二度目の結末：最後まで読んだことのある作品を開き直すと、最後の一行だけが別の一行になっている
+  var rr = document.querySelector("article[data-reread]");
+  if (rr) {
+    var rrKey = location.pathname;
+    var seen = load("reread-seen", []);
+    var lastP = rr.querySelectorAll(".story-body p");
+    lastP = lastP[lastP.length - 1];
+    if (lastP && seen.indexOf(rrKey) >= 0) {
+      var alt = rr.dataset.reread;
+      lastP.textContent = (/^　/.test(lastP.textContent) && !/^[「『〈（]/.test(alt) ? "　" : "") + alt;
+    }
+    var rrEnd = rr.querySelector(".story-end");
+    if (rrEnd && seen.indexOf(rrKey) < 0 && "IntersectionObserver" in window) {
+      var rrIo = new IntersectionObserver(function (entries) {
+        if (!entries[0].isIntersecting) return;
+        rrIo.disconnect();
+        var s = load("reread-seen", []);
+        if (s.indexOf(rrKey) < 0) { s.push(rrKey); save("reread-seen", s); }
+      });
+      rrIo.observe(rrEnd);
+    }
+  }
+
   // 既読：作品の最後（END）まで表示されたら読んだことにする
   var article = document.querySelector("article[data-read-slug]");
   var end = document.querySelector(".story-end");
