@@ -162,6 +162,7 @@
       window.scrollTo(0, 0);
       if (window.readerInit) window.readerInit();
       if (window.reviewsInit) window.reviewsInit();
+      if (window.watchInit) window.watchInit();
       bind();
       setState("playing");
       setTimeout(function () { if (my === gen && state === "playing") speakFrom(0); }, 900);

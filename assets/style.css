@@ -595,3 +595,23 @@ html.tts-on .site-footer { padding-bottom: 88px; }
 .story-kakuyomu { margin: 10px 0 0; font-size: 12px; }
 .story-kakuyomu a { display: inline-block; padding: 2px 10px; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--text-dim); text-decoration: none; }
 .story-kakuyomu a:hover { color: var(--accent); border-color: var(--accent); }
+
+/* 隠し要素：閲覧記録の報告 */
+.watch-report {
+  margin: 40px auto 0;
+  max-width: 34em;
+  padding: 18px 20px;
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--accent);
+  background: var(--panel);
+  color: var(--accent);
+  box-shadow: var(--glow);
+  font-size: 13px;
+  line-height: 1.9;
+}
+.watch-lines { margin: 0; white-space: pre-wrap; min-height: 1.9em; }
+.watch-lines::after { content: "▍"; animation: watch-blink 1s steps(1) infinite; }
+.watch-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 0; }
+.watch-actions[hidden] { display: none; }
+@keyframes watch-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .watch-lines::after { animation: none; } }
