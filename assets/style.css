@@ -615,3 +615,11 @@ html.tts-on .site-footer { padding-bottom: 88px; }
 .watch-actions[hidden] { display: none; }
 @keyframes watch-blink { 50% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .watch-lines::after { animation: none; } }
+
+/* 時間限定の作品 */
+.cards-night { margin-bottom: 18px; }
+.cards-night .card { border-color: var(--accent-2); box-shadow: 0 0 18px rgba(180, 140, 255, 0.35); }
+.cards-night .card-no { color: var(--accent-2); }
+.night-closed { white-space: pre-line; text-align: center; color: var(--accent-2); margin: 64px 0; line-height: 2; }
+.night-closed[hidden], .cards-night[hidden] { display: none; }
+.story-body[hidden] { display: none; }

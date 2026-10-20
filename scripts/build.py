@@ -83,6 +83,9 @@ def parse_story(path):
     # カクヨムにも載せた作品（「kakuyomu: 作品URL」。URLが無ければ「kakuyomu: yes」で作者ページへ）
     k = meta.get("kakuyomu", "").strip()
     meta["kakuyomu_url"] = k if k.startswith("http") else (AUTHOR_KAKUYOMU if k.lower() in ("yes", "true", "1") else "")
+    # 時間限定の作品（「open: 2-4」で午前2時〜4時、読者の端末の時刻）。隠し作品と同じく番号・検索に含めない
+    m = re.fullmatch(r"(\d{1,2})\s*-\s*(\d{1,2})", meta.get("open", "").strip())
+    meta["open"] = (int(m.group(1)), int(m.group(2))) if m else None
     meta["text"] = re.sub(r"\s+", "", body)
     meta["chars"] = len(meta["text"])
     meta.setdefault("description", excerpt(body))
@@ -344,7 +347,7 @@ def build():
 
     stories = [parse_story(p) for p in sorted(STORIES.glob("*.md"))]
     # hidden: true の作品（隠し作品）はURLを知っている人だけが読める。一覧・検索・サイトマップ・番号に含めない
-    hidden = [s for s in stories if s.get("hidden", "").lower() in ("true", "yes", "1")]
+    hidden = [s for s in stories if s.get("hidden", "").lower() in ("true", "yes", "1") or s["open"]]
     stories = [s for s in stories if s not in hidden]
     for s in hidden:
         s["no"] = "---"
@@ -374,14 +377,15 @@ def build():
             nav.append("<span></span>")
         minutes = read_minutes(s)
         body = f"""  <main class="reader">
-    <article{"" if is_hidden else f' data-read-slug="{esc(s["slug"])}"'}{f" data-yomi='{esc(json.dumps(s['yomi'], ensure_ascii=False))}'" if s["yomi"] else ""}>
+    <article{"" if is_hidden else f' data-read-slug="{esc(s["slug"])}"'}{f' data-open="{s["open"][0]}-{s["open"][1]}"' if s["open"] else ""}{f" data-yomi='{esc(json.dumps(s['yomi'], ensure_ascii=False))}'" if s["yomi"] else ""}>
       <header class="story-header">
         <p class="mono story-meta">FILE No.{s['no']} // {esc(s['date'])}</p>
         <h1 class="story-title">{esc(s['title'])}</h1>
         <p class="story-byline"><a href="{BASE_PATH}{ABOUT_PATH}" rel="author">{esc(site['author'])}</a></p>
         <p class="mono story-stats">{s['chars']:,} 字 · 約 {minutes} 分</p>{kakuyomu_link(s)}{font_switch()}{tts_panel()}{story_labels(s)}
       </header>
-      <div class="story-body">
+      <p class="night-closed mono" hidden></p>
+      <div class="story-body"{" hidden" if s["open"] else ""}>
 {s['html']}
       </div>
       <p class="story-end mono" aria-hidden="true">— END —</p>{"" if is_hidden else READ_TOGGLE}
@@ -438,6 +442,19 @@ def build():
       </li>"""
 
     cards = "\n".join(card(s) for s in newest_first)
+    # 時間限定の作品は、その時間帯だけ reader.js が一覧の先頭に出す
+    night = [s for s in hidden if s["open"]]
+    night_cards = "".join(f"""
+    <ul class="cards cards-night" data-open="{s['open'][0]}-{s['open'][1]}" hidden>
+      <li data-night-slug="{esc(s['slug'])}">
+        <a class="card" href="{BASE_PATH}{story_url(s)}">
+          <span class="mono card-no">No.??? // {s['open'][0]:02d}:00–{s['open'][1]:02d}:00 LIMITED</span>
+          <h2 class="card-title">{esc(s['title'])}</h2>
+          <p class="card-desc">{esc(s['description'])}</p>
+          <span class="mono card-meta">{s['chars']:,} 字 · 約 {read_minutes(s)} 分</span>
+        </a>
+      </li>
+    </ul>""" for s in night)
     genres = sorted({s["genre"] for s in stories if s["genre"]})
     chips = "".join(f'<button type="button" class="chip" data-genre="{esc(g)}">{esc(g)}</button>' for g in genres)
     genre_bar = f"""
@@ -474,7 +491,7 @@ def build():
         <input type="search" id="q" name="q" placeholder="タイトル・本文・タグで検索" autocomplete="off">
       </label>{genre_bar}{read_bar}{rank_bar}
       <p class="mono finder-status" id="finder-status" aria-live="polite"></p>
-    </form>
+    </form>{night_cards}
     <ul class="cards">
 {cards}
     </ul>
