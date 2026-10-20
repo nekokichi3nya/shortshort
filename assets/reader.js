@@ -137,8 +137,12 @@ window.readerInit = function () {
     fetch(BASE + "/search.json").then(function (r) { return r.json(); }).then(function (data) {
       var all = data.map(function (d) { return d.slug; }).filter(function (s) { return s !== current; });
       if (!all.length) return;
+      // ボタンの文言で「未読から選ぶ」ことと残りの数が分かるようにする
+      var left = all.filter(function (s) { return read.indexOf(s) < 0; }).length;
       Array.prototype.forEach.call(buttons, function (b) {
         b.hidden = false;
+        var label = b.lastChild;
+        if (label && label.nodeType === 3) label.textContent = left ? "未読からランダムに1作（残り" + left + "作）" : "ランダムに1作読む";
         b.addEventListener("click", function () {
           var done = load("read-stories", []);
           var unread = all.filter(function (s) { return done.indexOf(s) < 0; });
