@@ -206,3 +206,26 @@ window.readerInit();
     timer = setTimeout(function () { document.title = saved; }, 4000);
   });
 })();
+
+// 時間限定の作品：決められた時間帯（読者の端末の時刻）だけ一覧に出て、本文が開く
+(function () {
+  function inside(range) {
+    var p = range.split("-"), h = new Date().getHours(), a = +p[0], b = +p[1];
+    return a < b ? h >= a && h < b : h >= a || h < b;
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".cards-night[data-open]"), function (ul) {
+    ul.hidden = !inside(ul.dataset.open);
+  });
+  var article = document.querySelector("article[data-open]");
+  if (!article) return;
+  var range = article.dataset.open, body = article.querySelector(".story-body"), note = article.querySelector(".night-closed");
+  if (inside(range)) { body.hidden = false; return; }
+  var p = range.split("-"), now = new Date();
+  note.textContent = "このファイルは、午前" + (+p[0]) + "時から" + (+p[1]) + "時のあいだだけ開きます。\n現在 " +
+    now.getHours() + ":" + ("0" + now.getMinutes()).slice(-2);
+  note.hidden = false;
+  var end = article.querySelector(".story-end");
+  if (end) end.hidden = true;
+  var tts = document.querySelector(".tts");
+  if (tts) tts.remove();
+})();
