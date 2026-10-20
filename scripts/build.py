@@ -391,7 +391,8 @@ def build():
     </nav>
     <p class="random-wrap">{RANDOM_BUTTON}</p>
   </main>{"" if is_hidden else reviews_script()}
-  <script src="{asset("speech.js")}" defer></script>"""
+  <script src="{asset("speech.js")}" defer></script>
+  <script src="{asset("watch.js")}" defer></script>"""
         jsonld = {
             "@context": "https://schema.org",
             "@type": "ShortStory",
