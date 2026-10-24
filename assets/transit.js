@@ -70,7 +70,7 @@
     var open = worlds();
     var lines = (note ? [note, ""] : []).concat(["乗り継ぎ端末です。", "降りる座標を選んでください。"]);
     lines.push("", "グッドエンド　" + goods() + "／" + open.length);
-    if (state.items.length) lines.push("持ち物　" + state.items.join("、"));
+    lines.push("持ち物　" + state.items.length + "／" + catalog().length);
     print(lines, function () {
       var list = open.map(function (f) {
         if (read.indexOf(f.slug) < 0) return { label: "No." + f.no + "　座標未取得（先に原作を読む）", href: BASE + "/works/" + encodeURIComponent(f.slug) + "/", dim: true };
@@ -78,11 +78,51 @@
         return { label: "No." + f.no + "　" + f.title + (end ? "　" + end.toUpperCase() + " END" : ""), go: function () { enter(f.slug); } };
       });
       if (goods() === open.length) list.unshift({ label: "終点", go: terminus });
+      list.unshift({ label: "持ち物を見る（" + state.items.length + "）", go: inventory });
       var rest = files.length - open.length;
       if (rest > 0) list.push({ label: "ほか" + rest + "件の座標は、まだ測定中です", dim: true });
       if (state.ended) list.push({ label: "旅を最初からやり直す", go: function () { state = fresh(); save(); hub("旅の記録を消しました。"); } });
       list.push({ label: "サイトに戻る", href: BASE + "/" });
       buttons(list);
+    });
+  }
+
+  // すべてのアイテムと、手に入る世界・使う世界
+  function catalog() {
+    var map = {}, order = [];
+    worlds().forEach(function (f) {
+      var sc = WORLDS[f.slug].scenes;
+      Object.keys(sc).forEach(function (id) {
+        var s = sc[id];
+        if (s.get) {
+          if (!map[s.get]) { map[s.get] = { name: s.get, from: f.title, uses: [] }; order.push(s.get); }
+        }
+      });
+    });
+    worlds().forEach(function (f) {
+      var sc = WORLDS[f.slug].scenes;
+      Object.keys(sc).forEach(function (id) {
+        (sc[id].choices || []).forEach(function (c) {
+          if (c[2] && map[c[2]] && map[c[2]].uses.indexOf(f.slug) < 0) map[c[2]].uses.push(f.slug);
+        });
+      });
+    });
+    return order.map(function (k) { return map[k]; });
+  }
+
+  function inventory() {
+    var all = catalog();
+    var got = all.filter(function (it) { return has(it.name); });
+    var lines = ["持ち物　" + got.length + "／" + all.length, ""];
+    if (!got.length) lines.push("まだ何も持っていません。", "バッドエンドの世界にも、拾える物があります。");
+    got.forEach(function (it) {
+      var left = it.uses.filter(function (slug) { return state.ends[slug] !== "good"; }).length;
+      var note = !it.uses.length ? "記念品" : left ? "どこかの世界で使えそうだ" : "使い終えた";
+      lines.push("〔" + it.name + "〕", "　『" + it.from + "』で手に入れた。" + note + "。");
+    });
+    if (got.length < all.length) lines.push("", "まだ見ていない物が、" + kan(all.length - got.length) + "個あります。");
+    print(lines, function () {
+      buttons([{ label: "端末に戻る", go: function () { hub(); } }]);
     });
   }
 
