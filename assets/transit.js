@@ -12,6 +12,7 @@
   var menu = root.querySelector(".transit-choices");
   var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var timer = null;
+  var onlyBad = false;
 
   function load(key, fallback) {
     try { var v = localStorage.getItem(key); if (v) return JSON.parse(v); } catch (e) {}
@@ -34,6 +35,8 @@
   // instant: 一覧の画面は打ち出しの演出をせず、すぐ出す
   function print(lines, done, instant) {
     clearTimeout(timer);
+    var old = root.querySelector(".transit-bad");
+    if (old) old.remove();
     menu.innerHTML = "";
     var text = lines.join("\n");
     if (still || instant) { screen.onclick = null; screen.textContent = text; done(); return; }
@@ -53,7 +56,7 @@
     list.forEach(function (c) {
       var b = c.href ? document.createElement("a") : document.createElement("button");
       if (c.href) b.href = c.href; else b.type = "button";
-      b.className = "transit-choice mono" + (c.dim ? " is-dim" : "");
+      b.className = "transit-choice mono" + (c.dim ? " is-dim" : "") + (c.bad ? " is-bad" : "");
       b.textContent = c.label;
       if (c.go) b.addEventListener("click", c.go);
       else if (!c.href) b.disabled = true;
@@ -73,12 +76,20 @@
     lines.push("", "グッドエンド　" + goods() + "／" + open.length);
     lines.push("持ち物　" + state.items.length + "／" + catalog().length);
     print(lines, function () {
-      var list = open.map(function (f) {
+      // 「バッドエンドだけ」のときは、まだバッドエンドの世界だけを並べる
+      var list = open.filter(function (f) { return !onlyBad || state.ends[f.slug] === "bad"; }).map(function (f) {
         if (read.indexOf(f.slug) < 0) return { label: "No." + f.no + "　座標未取得（先に原作を読む）", href: BASE + "/works/" + encodeURIComponent(f.slug) + "/", dim: true };
         var end = state.ends[f.slug];
-        return { label: "No." + f.no + "　" + f.title + (end ? "　" + end.toUpperCase() + " END" : ""), go: function () { enter(f.slug); } };
+        return { label: "No." + f.no + "　" + f.title + (end ? "　" + end.toUpperCase() + " END" : ""), bad: end === "bad", go: function () { enter(f.slug); } };
       });
       if (goods() === open.length) list.unshift({ label: "終点", go: terminus });
+      var bads = open.filter(function (f) { return state.ends[f.slug] === "bad"; }).length;
+      if (onlyBad) {
+        if (!bads) list.push({ label: "バッドエンドの世界は、もうありません", dim: true });
+        list.unshift({ label: "すべての世界を表示する", go: function () { onlyBad = false; hub(); } });
+      } else if (bads) {
+        list.unshift({ label: "バッドエンドだけ表示する（" + bads + "）", bad: true, go: function () { onlyBad = true; hub(); } });
+      }
       list.unshift({ label: "持ち物を見る（" + state.items.length + "）", go: inventory });
       var rest = files.length - open.length;
       if (rest > 0) list.push({ label: "ほか" + rest + "件の座標は、まだ測定中です", dim: true });
@@ -136,12 +147,19 @@
     var s = WORLDS[slug].scenes[id];
     var lines = (head || []).concat(s.text);
     if (s.end) {
-      lines.push("", s.end === "good" ? "― GOOD END ―" : "― BAD END ―");
+      // バッドエンドだけは、文の後に赤い帯で大きく出す
+      if (s.end === "good") lines.push("", "― GOOD END ―");
       // 一度グッドエンドを見た世界は、バッドエンドを見直してもグッドのまま
       if (state.ends[slug] !== "good") { state.ends[slug] = s.end; save(); }
     }
     if (s.get && !has(s.get)) { give(s.get); lines.push("", "〔" + s.get + "〕を手に入れた。"); }
     print(lines, function () {
+      if (s.end === "bad") {
+        var bad = document.createElement("p");
+        bad.className = "transit-bad";
+        bad.textContent = "BAD END";
+        menu.parentNode.insertBefore(bad, menu);
+      }
       if (s.end) {
         var after = [{ label: "端末に戻る", go: function () { hub(back(slug, s.end)); } }];
         if (s.end === "bad") after.unshift({ label: "最初から選びなおす", go: function () { enter(slug); } });
