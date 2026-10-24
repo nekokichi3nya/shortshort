@@ -157,7 +157,7 @@
     p.className = "transit-hint mono";
     var a = document.createElement("a");
     a.href = BASE + "/transit/";
-    a.textContent = "› この結末を、変えたいですか";
+    a.textContent = "› この物語は、まだ終わっていません";
     p.appendChild(a);
     wrap.parentNode.insertBefore(p, wrap.nextSibling);
   }
