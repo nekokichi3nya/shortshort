@@ -31,11 +31,12 @@
 
   function readList() { return load("read-stories", []); }
 
-  function print(lines, done) {
+  // instant: 一覧の画面は打ち出しの演出をせず、すぐ出す
+  function print(lines, done, instant) {
     clearTimeout(timer);
     menu.innerHTML = "";
     var text = lines.join("\n");
-    if (still) { screen.textContent = text; done(); return; }
+    if (still || instant) { screen.onclick = null; screen.textContent = text; done(); return; }
     var i = 0;
     (function type() {
       i++;
@@ -84,7 +85,7 @@
       if (state.ended) list.push({ label: "旅を最初からやり直す", go: function () { state = fresh(); save(); hub("旅の記録を消しました。"); } });
       list.push({ label: "サイトに戻る", href: BASE + "/" });
       buttons(list);
-    });
+    }, true);
   }
 
   // すべてのアイテムと、手に入る世界・使う世界
@@ -123,7 +124,7 @@
     if (got.length < all.length) lines.push("", "まだ見ていない物が、" + kan(all.length - got.length) + "個あります。");
     print(lines, function () {
       buttons([{ label: "端末に戻る", go: function () { hub(); } }]);
-    });
+    }, true);
   }
 
   function enter(slug) {
