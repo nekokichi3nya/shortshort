@@ -662,3 +662,29 @@ html.tts-on .site-footer { padding-bottom: 88px; }
 .transit-hint a { animation: transit-pulse 4s ease-in-out infinite; }
 .transit-hint a:hover, .transit-hint a:focus { animation: none; }
 @media (prefers-reduced-motion: reduce) { .transit-hint a { animation: none; } }
+
+/* バッドエンドだけ目立たせる */
+.transit-bad {
+  margin: 22px 0 0;
+  padding: 10px 0;
+  text-align: center;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 28px;
+  letter-spacing: 0.3em;
+  color: #ff4d6d;
+  border-top: 1px solid rgba(255, 77, 109, 0.6);
+  border-bottom: 1px solid rgba(255, 77, 109, 0.6);
+  background: rgba(255, 77, 109, 0.08);
+  text-shadow: 0 0 14px rgba(255, 77, 109, 0.7);
+  animation: transit-bad-in 0.9s steps(6) both;
+}
+@keyframes transit-bad-in {
+  0% { opacity: 0; transform: translateX(-6px); }
+  30% { opacity: 1; transform: translateX(5px); }
+  60% { opacity: 0.4; transform: translateX(-3px); }
+  100% { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .transit-bad { animation: none; } }
+.transit-choice.is-bad { border-color: rgba(255, 77, 109, 0.45); }
+.transit-choice.is-bad::before { color: #ff4d6d; }
