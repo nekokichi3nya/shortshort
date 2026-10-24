@@ -547,6 +547,25 @@ def build():
     out.write_text(page(title=f"{site['author']}のプロフィール", description=about_desc, path=ABOUT_PATH,
                         body=body, og_type="profile", jsonld=jsonld), encoding="utf-8")
 
+    # 隠し要素「乗り継ぎ」：読み終えた作品の世界を歩くテキストの旅（assets/transit.js）。一覧・サイトマップには載せない
+    files = [{"slug": s["slug"], "no": s["no"], "title": s["title"]} for s in stories]
+    body = f"""  <main class="home transit-page">
+    <section class="hero">
+      <p class="mono hero-eyebrow">// TRANSIT TERMINAL</p>
+      <h1 class="hero-title">乗り継ぎ</h1>
+    </section>
+    <section id="transit" class="transit mono" aria-live="polite" data-files='{esc(json.dumps(files, ensure_ascii=False))}'>
+      <p class="transit-lines"></p>
+      <div class="transit-choices"></div>
+    </section>
+    <noscript><p class="hero-desc">この端末は JavaScript を使います。</p></noscript>
+  </main>
+  <script src="{asset("transit.js")}" defer></script>"""
+    out = OUT / "transit" / "index.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(page(title="乗り継ぎ", description=site["description"], path="/transit/",
+                        body=body, noindex=True), encoding="utf-8")
+
     # 404
     # 評価・感想での並べ替えと絞り込み（評価機能があるときだけ）
     rank_bar = ""
