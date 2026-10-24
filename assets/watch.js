@@ -148,7 +148,7 @@
     }
   }
 
-  // 3作読み終えると、ページのいちばん下に「乗り継ぎ」端末への入口がかすかに出る
+  // 3作読み終えると、ページのいちばん下に、その作品の世界（「乗り継ぎ」）への入口がかすかに出る
   function hint() {
     if (readList().length < 3 || document.querySelector(".transit-hint")) return;
     var wrap = document.querySelector(".random-wrap");
@@ -156,8 +156,9 @@
     var p = document.createElement("p");
     p.className = "transit-hint mono";
     var a = document.createElement("a");
-    a.href = BASE + "/transit/";
-    a.textContent = "› この結末を、変えたいですか";
+    // その作品の世界へ直接入る（世界がまだない作品なら、端末が一覧を出す）
+    a.href = BASE + "/transit/" + (cur ? "#" + encodeURIComponent(cur) : "");
+    a.textContent = "› この世界に、行けます";
     p.appendChild(a);
     wrap.parentNode.insertBefore(p, wrap.nextSibling);
   }
