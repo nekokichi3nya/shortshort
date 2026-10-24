@@ -547,7 +547,7 @@ def build():
     out.write_text(page(title=f"{site['author']}のプロフィール", description=about_desc, path=ABOUT_PATH,
                         body=body, og_type="profile", jsonld=jsonld), encoding="utf-8")
 
-    # 隠し要素「乗り継ぎ」：読み終えた作品の世界を歩くテキストの旅（assets/transit.js）。一覧・サイトマップには載せない
+    # 隠し要素「乗り継ぎ」：読み終えた作品の世界で、結末を選び直すノベルゲーム（assets/transit.js, transit-worlds.js）。一覧・サイトマップには載せない
     files = [{"slug": s["slug"], "no": s["no"], "title": s["title"]} for s in stories]
     body = f"""  <main class="home transit-page">
     <section class="hero">
@@ -560,6 +560,7 @@ def build():
     </section>
     <noscript><p class="hero-desc">この端末は JavaScript を使います。</p></noscript>
   </main>
+  <script src="{asset("transit-worlds.js")}" defer></script>
   <script src="{asset("transit.js")}" defer></script>"""
     out = OUT / "transit" / "index.html"
     out.parent.mkdir(parents=True, exist_ok=True)
