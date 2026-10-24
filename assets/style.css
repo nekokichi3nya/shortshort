@@ -657,3 +657,8 @@ html.tts-on .site-footer { padding-bottom: 88px; }
 .transit-choice::before { content: "› "; color: var(--accent); }
 .transit-choice:hover, .transit-choice:focus-visible { border-color: var(--accent); color: var(--accent); }
 .transit-choice.is-dim { color: var(--text-dim); opacity: 0.6; }
+/* 入口は、ときどき息をするように明滅する */
+@keyframes transit-pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.9; } }
+.transit-hint a { animation: transit-pulse 4s ease-in-out infinite; }
+.transit-hint a:hover, .transit-hint a:focus { animation: none; }
+@media (prefers-reduced-motion: reduce) { .transit-hint a { animation: none; } }
