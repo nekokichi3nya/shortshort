@@ -222,6 +222,10 @@
     });
     return;
   }
+  // 作品ページの入口から来たときは、その作品の世界へ直接降りる
+  var want = "";
+  try { want = decodeURIComponent(location.hash.slice(1)); } catch (e) {}
+  if (WORLDS[want] && readList().indexOf(want) >= 0 && files.some(function (f) { return f.slug === want; })) return enter(want);
   hub(state.ended ? "また来ましたね。今度は、記録していません。"
     : Object.keys(state.ends).length ? "おかえりなさい。"
     : "はじめまして。……ではありませんね。閲覧記録で、あなたのことは知っています。\n旅行者は、降りた世界を変えてはいけない決まりです。見るだけにしてください。");
