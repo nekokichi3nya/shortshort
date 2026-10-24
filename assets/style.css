@@ -623,3 +623,37 @@ html.tts-on .site-footer { padding-bottom: 88px; }
 .night-closed { white-space: pre-line; text-align: center; color: var(--accent-2); margin: 64px 0; line-height: 2; }
 .night-closed[hidden], .cards-night[hidden] { display: none; }
 .story-body[hidden] { display: none; }
+
+/* 隠し要素「乗り継ぎ」 */
+.transit-hint { text-align: center; margin: 28px 0 0; font-size: 12px; }
+.transit-hint a { color: var(--text-dim); opacity: 0.55; text-decoration: none; }
+.transit-hint a:hover, .transit-hint a:focus { color: var(--accent); opacity: 1; }
+.transit {
+  max-width: 34em;
+  margin: 0 auto;
+  padding: 18px 20px;
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--accent);
+  background: var(--panel);
+  color: var(--accent);
+  box-shadow: var(--glow);
+  font-size: 14px;
+  line-height: 1.9;
+}
+.transit-lines { margin: 0; white-space: pre-wrap; min-height: 6em; cursor: default; }
+.transit-choices { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+.transit-choice {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.transit-choice::before { content: "› "; color: var(--accent); }
+.transit-choice:hover, .transit-choice:focus-visible { border-color: var(--accent); color: var(--accent); }
+.transit-choice.is-dim { color: var(--text-dim); opacity: 0.6; }

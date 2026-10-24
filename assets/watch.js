@@ -148,6 +148,20 @@
     }
   }
 
+  // 3作読み終えると、ページのいちばん下に「乗り継ぎ」端末への入口がかすかに出る
+  function hint() {
+    if (readList().length < 3 || document.querySelector(".transit-hint")) return;
+    var wrap = document.querySelector(".random-wrap");
+    if (!wrap) return;
+    var p = document.createElement("p");
+    p.className = "transit-hint mono";
+    var a = document.createElement("a");
+    a.href = BASE + "/transit/";
+    a.textContent = "› 座標を一件、受信しています";
+    p.appendChild(a);
+    wrap.parentNode.insertBefore(p, wrap.nextSibling);
+  }
+
   // 読み上げの連続再生で本文が差し替わったときにも呼ばれる
   window.watchInit = function () {
     flush();
@@ -169,7 +183,7 @@
       if (!entries[0].isIntersecting) return;
       io.disconnect();
       // 既読の記録（reader.js）が済んでから数える
-      setTimeout(check, 1200);
+      setTimeout(function () { check(); hint(); }, 1200);
     });
     io.observe(end);
   };
