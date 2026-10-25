@@ -148,7 +148,7 @@
     }
   }
 
-  // 3作読み終えると、ページのいちばん下に、その作品の世界（「乗り継ぎ」）への入口がかすかに出る
+  // 3作読み終えると、ページのいちばん下に、その作品の世界（「分岐点」）への入口がかすかに出る
   function hint() {
     if (readList().length < 3 || document.querySelector(".transit-hint")) return;
     var wrap = document.querySelector(".random-wrap");

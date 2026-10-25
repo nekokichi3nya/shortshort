@@ -199,11 +199,11 @@ def page(*, title, description, path, body, og_type="website", jsonld=None, noin
     <p class="mono footer-end">END OF TRANSMISSION</p>
   </footer>
   <script>
-    // 3作読み終えると、どのページでもフッターの END OF TRANSMISSION が「乗り継ぎ」端末（トップ）への入口になる
+    // 3作読み終えると、どのページでもフッターの END OF TRANSMISSION が「分岐点」端末（トップ）への入口になる
     (function () {{
       try {{ if ((JSON.parse(localStorage.getItem("read-stories")) || []).length < 3) return; }} catch (e) {{ return; }}
       var p = document.querySelector(".footer-end"), a = document.createElement("a");
-      a.href = "{BASE_PATH}/transit/"; a.className = "footer-transit"; a.textContent = p.textContent; a.title = "乗り継ぎ";
+      a.href = "{BASE_PATH}/transit/"; a.className = "footer-transit"; a.textContent = p.textContent; a.title = "分岐点";
       p.textContent = ""; p.appendChild(a);
     }})();
   </script>
@@ -556,12 +556,12 @@ def build():
     out.write_text(page(title=f"{site['author']}のプロフィール", description=about_desc, path=ABOUT_PATH,
                         body=body, og_type="profile", jsonld=jsonld), encoding="utf-8")
 
-    # 隠し要素「乗り継ぎ」：読み終えた作品の世界で、結末を選び直すノベルゲーム（assets/transit.js, transit-worlds.js）。一覧・サイトマップには載せない
+    # 隠し要素「分岐点」：読み終えた作品の世界で、結末を選び直すノベルゲーム（assets/transit.js, transit-worlds.js）。一覧・サイトマップには載せない
     files = [{"slug": s["slug"], "no": s["no"], "title": s["title"]} for s in stories]
     body = f"""  <main class="home transit-page">
     <section class="hero">
-      <p class="mono hero-eyebrow">// TRANSIT TERMINAL</p>
-      <h1 class="hero-title">乗り継ぎ</h1>
+      <p class="mono hero-eyebrow">// BRANCH POINT</p>
+      <h1 class="hero-title">分岐点</h1>
     </section>
     <section id="transit" class="transit mono" aria-live="polite" data-files='{esc(json.dumps(files, ensure_ascii=False))}'>
       <p class="transit-lines"></p>
@@ -573,7 +573,7 @@ def build():
   <script src="{asset("transit.js")}" defer></script>"""
     out = OUT / "transit" / "index.html"
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(page(title="乗り継ぎ", description=site["description"], path="/transit/",
+    out.write_text(page(title="分岐点", description=site["description"], path="/transit/",
                         body=body, noindex=True), encoding="utf-8")
 
     # 404
