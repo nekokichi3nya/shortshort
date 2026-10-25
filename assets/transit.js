@@ -13,6 +13,14 @@
   var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var timer = null;
   var onlyBad = false;
+  // どの画面からでも端末（トップ）に戻れるボタン。端末にいるあいだだけ隠す
+  var top = document.createElement("button");
+  top.type = "button";
+  top.className = "transit-top mono";
+  top.textContent = "≡ 端末に戻る";
+  top.hidden = true;
+  top.onclick = function () { clearTimeout(timer); hub(); };
+  root.insertBefore(top, root.firstChild);
 
   function load(key, fallback) {
     try { var v = localStorage.getItem(key); if (v) return JSON.parse(v); } catch (e) {}
@@ -37,6 +45,7 @@
     clearTimeout(timer);
     Array.prototype.forEach.call(root.querySelectorAll(".transit-bad, .transit-items"), function (el) { el.remove(); });
     menu.innerHTML = "";
+    top.hidden = false;
     var text = lines.join("\n");
     if (still || instant) { screen.onclick = null; screen.textContent = text; done(); return; }
     var i = 0;
@@ -76,6 +85,8 @@
   function goods() { return worlds().filter(function (f) { return state.ends[f.slug] === "good"; }).length; }
 
   function hub(note) {
+    // 作品ページから #slug 付きで来ても、再読み込みで端末に戻れるようにする
+    if (location.hash && history.replaceState) history.replaceState(null, "", location.pathname + location.search);
     var read = readList();
     var open = worlds();
     var lines = (note ? [note, ""] : []).concat(["乗り継ぎ端末です。", "降りる座標を選んでください。"]);
@@ -103,6 +114,7 @@
       list.push({ label: "サイトに戻る", href: BASE + "/" });
       buttons(list);
     }, true);
+    top.hidden = true;
   }
 
   // すべてのアイテムと、手に入る世界・使う世界
@@ -278,6 +290,7 @@
     print(["乗り継ぎ端末です。", "", "閲覧記録が足りません。", "三作以上読み終えてから、また来てください。", "", "あなたが来たことは、記録しておきます。"], function () {
       buttons([{ label: "作品一覧へ", href: BASE + "/" }]);
     });
+    top.hidden = true;
     return;
   }
   // 作品ページの入口から来たときは、その作品の世界へ直接降りる
