@@ -196,8 +196,17 @@ def page(*, title, description, path, body, og_type="website", jsonld=None, noin
 {body}
   <footer class="site-footer">
     <p>&copy; {datetime.date.today().year} <a class="footer-author" href="{BASE_PATH}{ABOUT_PATH}" rel="author">{esc(site['author'])}</a></p>
-    <p class="mono">END OF TRANSMISSION</p>
+    <p class="mono footer-end">END OF TRANSMISSION</p>
   </footer>
+  <script>
+    // 3作読み終えると、どのページでもフッターの END OF TRANSMISSION が「乗り継ぎ」端末（トップ）への入口になる
+    (function () {{
+      try {{ if ((JSON.parse(localStorage.getItem("read-stories")) || []).length < 3) return; }} catch (e) {{ return; }}
+      var p = document.querySelector(".footer-end"), a = document.createElement("a");
+      a.href = "{BASE_PATH}/transit/"; a.className = "footer-transit"; a.textContent = p.textContent; a.title = "乗り継ぎ";
+      p.textContent = ""; p.appendChild(a);
+    }})();
+  </script>
 </body>
 </html>
 """
