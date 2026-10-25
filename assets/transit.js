@@ -49,12 +49,13 @@
     var text = lines.join("\n");
     if (still || instant) { screen.onclick = null; screen.textContent = text; done(); return; }
     var i = 0;
-    (function type() {
+    function type() {
       i++;
       screen.textContent = text.slice(0, i);
       if (i < text.length) timer = setTimeout(type, text[i - 1] === "\n" ? 300 : 32);
       else done();
-    })();
+    }
+    type();
     // 打ち出し中に画面を押すと最後まで出す
     screen.onclick = function () { if (i < text.length) { clearTimeout(timer); i = text.length - 1; type(); } };
   }
@@ -204,6 +205,9 @@
   }
 
   function enter(slug) {
+    // 入ったことのある世界は、作品ページの入口を点滅させない（watch.js が見る）
+    if (!state.visited) state.visited = [];
+    if (state.visited.indexOf(slug) < 0) { state.visited.push(slug); save(); }
     var f = worlds().filter(function (x) { return x.slug === slug; })[0];
     scene(slug, "start", ["― 『" + f.title + "』　" + WORLDS[slug].place + " ―", ""]);
   }
@@ -310,8 +314,21 @@
   // 作品ページの入口から来たときは、その作品の世界へ直接降りる
   var want = "";
   try { want = decodeURIComponent(location.hash.slice(1)); } catch (e) {}
-  if (WORLDS[want] && readList().indexOf(want) >= 0 && files.some(function (f) { return f.slug === want; })) return enter(want);
+  var hello = "はじめまして。……ではありませんね。閲覧記録で、あなたのことは知っています。\n旅行者は、降りた世界を変えてはいけない決まりです。見るだけにしてください。";
+  var first = !state.greeted && !Object.keys(state.ends).length && !state.ended;
+  if (first) { state.greeted = true; save(); }
+  if (WORLDS[want] && readList().indexOf(want) >= 0 && files.some(function (f) { return f.slug === want; })) {
+    if (!first) return enter(want);
+    // 初めての人は、作品ページの入口から来ても、まずあいさつを聞いてから降りる
+    var title = files.filter(function (f) { return f.slug === want; })[0].title;
+    print(["分岐点の端末です。", "", hello, "", "あなたが読み終えた世界のひとつに、座標が合っています。", "『" + title + "』の、結末の少し前です。"], function () {
+      buttons([
+        { label: "『" + title + "』に降りる", go: function () { enter(want); } },
+        { label: "ほかの世界を見る", go: function () { hub(); } }
+      ]);
+    });
+    return;
+  }
   hub(state.ended ? "また来ましたね。今度は、記録していません。"
-    : Object.keys(state.ends).length ? "おかえりなさい。"
-    : "はじめまして。……ではありませんね。閲覧記録で、あなたのことは知っています。\n旅行者は、降りた世界を変えてはいけない決まりです。見るだけにしてください。");
+    : first ? hello : "おかえりなさい。");
 })();

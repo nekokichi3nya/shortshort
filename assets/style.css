@@ -739,3 +739,18 @@ html.tts-on .site-footer { padding-bottom: 88px; }
 .footer-transit { color: inherit; text-decoration: none; animation: transit-pulse 4s ease-in-out infinite; }
 .footer-transit:hover, .footer-transit:focus { color: var(--accent); animation: none; }
 @media (prefers-reduced-motion: reduce) { .footer-transit { animation: none; } }
+/* まだ入ったことのない世界の入口は、はっきり点滅させる */
+.transit-hint.is-new { font-size: 13px; }
+.transit-hint.is-new a {
+  color: var(--accent);
+  opacity: 1;
+  text-shadow: 0 0 8px rgba(110, 231, 255, 0.6);
+  animation: transit-blink 1.1s steps(2, jump-none) infinite;
+}
+@keyframes transit-blink { 0% { opacity: 1; } 100% { opacity: 0.15; } }
+@media (prefers-reduced-motion: reduce) { .transit-hint.is-new a { animation: none; } }
+/* 一度分岐点に入った人だけ、作品一覧のトップに出る入口 */
+.transit-entry { margin: 14px 0 0; font-size: 12px; }
+.transit-entry a { color: var(--text-dim); text-decoration: none; animation: transit-pulse 4s ease-in-out infinite; }
+.transit-entry a:hover, .transit-entry a:focus { color: var(--accent); animation: none; }
+@media (prefers-reduced-motion: reduce) { .transit-entry a { animation: none; } }
