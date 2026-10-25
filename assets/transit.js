@@ -110,7 +110,7 @@
       list.unshift({ label: "持ち物を見る（" + state.items.length + "）", go: inventory });
       var rest = files.length - open.length;
       if (rest > 0) list.push({ label: "ほか" + rest + "件の座標は、まだ測定中です", dim: true });
-      if (state.ended) list.push({ label: "旅を最初からやり直す", go: function () { state = fresh(); save(); hub("旅の記録を消しました。"); } });
+      if (state.ended) list.push({ label: "旅を最初からやり直す", go: confirmReset });
       list.push({ label: "サイトに戻る", href: BASE + "/" });
       buttons(list);
     }, true);
@@ -118,6 +118,20 @@
   }
 
   // すべてのアイテムと、手に入る世界・使う世界
+  // 消す前に、何が消えるかを見せて確かめる（読んだ記録は残る）
+  function confirmReset() {
+    print(["旅の記録を、すべて消します。", "",
+      "グッドエンド　" + goods() + "／" + worlds().length + "　→　0",
+      "持ち物　" + state.items.length + "／" + catalog().length + "　→　0", "",
+      "消した記録は、元に戻せません。", "読んだ作品の記録は、そのまま残ります。", "",
+      "本当に、最初からやり直しますか。"], function () {
+      buttons([
+        { label: "やめて、端末に戻る", go: function () { hub(); } },
+        { label: "消して、最初からやり直す", bad: true, go: function () { state = fresh(); save(); hub("旅の記録を消しました。"); } }
+      ]);
+    }, true);
+  }
+
   function catalog() {
     var map = {}, order = [];
     worlds().forEach(function (f) {
