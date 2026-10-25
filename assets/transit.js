@@ -35,8 +35,7 @@
   // instant: 一覧の画面は打ち出しの演出をせず、すぐ出す
   function print(lines, done, instant) {
     clearTimeout(timer);
-    var old = root.querySelector(".transit-bad");
-    if (old) old.remove();
+    Array.prototype.forEach.call(root.querySelectorAll(".transit-bad, .transit-items"), function (el) { el.remove(); });
     menu.innerHTML = "";
     var text = lines.join("\n");
     if (still || instant) { screen.onclick = null; screen.textContent = text; done(); return; }
@@ -114,7 +113,7 @@
       Object.keys(sc).forEach(function (id) {
         var s = sc[id];
         if (s.get) {
-          if (!map[s.get]) { map[s.get] = { name: s.get, from: f.title, uses: [] }; order.push(s.get); }
+          if (!map[s.get]) { map[s.get] = { name: s.get, from: f.title, slug: f.slug, uses: [] }; order.push(s.get); }
         }
       });
     });
@@ -129,18 +128,51 @@
     return order.map(function (k) { return map[k]; });
   }
 
+  // 持ち物の図鑑。持っている物はカードで、まだの物は「？？？」で並べる
   function inventory() {
     var all = catalog();
+    var info = window.TRANSIT_ITEMS || {};
+    var read = readList();
     var got = all.filter(function (it) { return has(it.name); });
-    var lines = ["持ち物　" + got.length + "／" + all.length, ""];
-    if (!got.length) lines.push("まだ何も持っていません。", "バッドエンドの世界にも、拾える物があります。");
-    got.forEach(function (it) {
-      var left = it.uses.filter(function (slug) { return state.ends[slug] !== "good"; }).length;
-      var note = !it.uses.length ? "記念品" : left ? "どこかの世界で使えそうだ" : "使い終えた";
-      lines.push("〔" + it.name + "〕", "　『" + it.from + "』で手に入れた。" + note + "。");
-    });
-    if (got.length < all.length) lines.push("", "まだ見ていない物が、" + kan(all.length - got.length) + "個あります。");
+    var lines = ["持ち物　" + got.length + "／" + all.length];
+    lines.push(got.length ? "拾った物は、ほかの世界で役に立つことがあります。" : "まだ何も持っていません。バッドエンドの世界にも、拾える物があります。");
     print(lines, function () {
+      var grid = document.createElement("div");
+      grid.className = "transit-items";
+      // まだの物は、小さな札にして下にまとめる
+      var rest = document.createElement("div");
+      rest.className = "transit-items is-unknown-grid";
+      // 持っている物を先に、拾った順で
+      all.slice().sort(function (a, b) {
+        var ia = state.items.indexOf(a.name), ib = state.items.indexOf(b.name);
+        return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
+      }).forEach(function (it) {
+        var card = document.createElement("div");
+        var name = document.createElement("p");
+        var desc = document.createElement("p");
+        var meta = document.createElement("p");
+        name.className = "transit-item-name";
+        desc.className = "transit-item-desc";
+        meta.className = "transit-item-meta";
+        if (has(it.name)) {
+          var left = it.uses.filter(function (slug) { return state.ends[slug] !== "good"; }).length;
+          var kind = !it.uses.length ? "keep" : left ? "use" : "done";
+          card.className = "transit-item is-" + kind;
+          name.textContent = "〔" + it.name + "〕";
+          desc.textContent = info[it.name] || "";
+          meta.textContent = "『" + it.from + "』　" + (kind === "keep" ? "記念品" : kind === "use" ? "どこかで使えそう" : "使い終えた");
+        } else {
+          card.className = "transit-item is-unknown";
+          name.textContent = "？";
+          meta.textContent = read.indexOf(it.slug) >= 0 ? "『" + it.from + "』" : "未読の作品";
+        }
+        card.appendChild(name);
+        if (desc.textContent) card.appendChild(desc);
+        card.appendChild(meta);
+        (has(it.name) ? grid : rest).appendChild(card);
+      });
+      if (grid.children.length) menu.parentNode.insertBefore(grid, menu);
+      if (rest.children.length) menu.parentNode.insertBefore(rest, menu);
       buttons([{ label: "端末に戻る", go: function () { hub(); } }]);
     }, true);
   }
