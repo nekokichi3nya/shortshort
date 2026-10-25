@@ -66,6 +66,13 @@
     if (first && document.activeElement && document.activeElement.classList.contains("transit-choice")) first.focus();
   }
 
+  // その世界で手に入るアイテムを、全部持っているか
+  function complete(slug) {
+    var sc = WORLDS[slug].scenes, names = [];
+    Object.keys(sc).forEach(function (id) { if (sc[id].get && names.indexOf(sc[id].get) < 0) names.push(sc[id].get); });
+    return names.length > 0 && names.every(has);
+  }
+
   function worlds() { return files.filter(function (f) { return WORLDS[f.slug]; }); }
   function goods() { return worlds().filter(function (f) { return state.ends[f.slug] === "good"; }).length; }
 
@@ -80,7 +87,7 @@
       var list = open.filter(function (f) { return !onlyBad || state.ends[f.slug] === "bad"; }).map(function (f) {
         if (read.indexOf(f.slug) < 0) return { label: "No." + f.no + "　座標未取得（先に原作を読む）", href: BASE + "/works/" + encodeURIComponent(f.slug) + "/", dim: true };
         var end = state.ends[f.slug];
-        return { label: "No." + f.no + "　" + f.title + (end ? "　" + end.toUpperCase() + " END" : ""), bad: end === "bad", go: function () { enter(f.slug); } };
+        return { label: "No." + f.no + "　" + f.title + (end ? "　" + end.toUpperCase() + " END" : "") + (complete(f.slug) ? "　◆全回収" : ""), bad: end === "bad", go: function () { enter(f.slug); } };
       });
       if (goods() === open.length) list.unshift({ label: "終点", go: terminus });
       var bads = open.filter(function (f) { return state.ends[f.slug] === "bad"; }).length;
