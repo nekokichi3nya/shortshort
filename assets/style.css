@@ -721,3 +721,17 @@ html.tts-on .site-footer { padding-bottom: 88px; }
 .transit-items.is-unknown-grid .transit-item { padding: 8px 6px; align-items: center; text-align: center; gap: 2px; }
 .transit-items.is-unknown-grid .transit-item-name { font-size: 18px; letter-spacing: 0; }
 .transit-items.is-unknown-grid .transit-item-meta { font-size: 10px; letter-spacing: 0; overflow-wrap: anywhere; }
+/* どの画面からでも端末に戻れるボタン（右上） */
+.transit-top {
+  display: block;
+  margin: -6px 0 14px auto;
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+}
+.transit-top:hover, .transit-top:focus-visible { border-color: var(--accent); color: var(--accent); }
+.transit-top[hidden] { display: none; }
