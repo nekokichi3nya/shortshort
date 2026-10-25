@@ -1,4 +1,4 @@
-// 隠し要素「乗り継ぎ」：読み終えた作品の世界に降りて、選択次第でバッドエンドをグッドエンドに書き換えるノベルゲーム。
+// 隠し要素「分岐点」：読み終えた作品の世界に降りて、選択次第でバッドエンドをグッドエンドに書き換えるノベルゲーム。
 // グッドエンドの多くは、ほかの世界で手に入れたアイテムがないと選べない（バッドエンドで手に入るアイテムもある）。
 // 案内するのは閲覧記録（watch.js）と同じ「わたし」。未読の作品には降りられない（結末を明かさないため）。
 // 進み具合はこのブラウザの中だけに残す（どこにも送信しない）
@@ -89,7 +89,7 @@
     if (location.hash && history.replaceState) history.replaceState(null, "", location.pathname + location.search);
     var read = readList();
     var open = worlds();
-    var lines = (note ? [note, ""] : []).concat(["乗り継ぎ端末です。", "降りる座標を選んでください。"]);
+    var lines = (note ? [note, ""] : []).concat(["分岐点の端末です。", "降りる座標を選んでください。"]);
     lines.push("", "グッドエンド　" + goods() + "／" + open.length);
     lines.push("持ち物　" + state.items.length + "／" + catalog().length);
     print(lines, function () {
@@ -287,7 +287,7 @@
   }
 
   if (readList().length < 3) {
-    print(["乗り継ぎ端末です。", "", "閲覧記録が足りません。", "三作以上読み終えてから、また来てください。", "", "あなたが来たことは、記録しておきます。"], function () {
+    print(["分岐点の端末です。", "", "閲覧記録が足りません。", "三作以上読み終えてから、また来てください。", "", "あなたが来たことは、記録しておきます。"], function () {
       buttons([{ label: "作品一覧へ", href: BASE + "/" }]);
     });
     top.hidden = true;
