@@ -735,3 +735,7 @@ html.tts-on .site-footer { padding-bottom: 88px; }
 }
 .transit-top:hover, .transit-top:focus-visible { border-color: var(--accent); color: var(--accent); }
 .transit-top[hidden] { display: none; }
+/* 3作読むと、フッターの END OF TRANSMISSION が乗り継ぎ端末への入口になる */
+.footer-transit { color: inherit; text-decoration: none; animation: transit-pulse 4s ease-in-out infinite; }
+.footer-transit:hover, .footer-transit:focus { color: var(--accent); animation: none; }
+@media (prefers-reduced-motion: reduce) { .footer-transit { animation: none; } }
