@@ -159,6 +159,10 @@
     // その作品の世界へ直接入る（世界がまだない作品なら、端末が一覧を出す）
     a.href = BASE + "/transit/" + (cur ? "#" + encodeURIComponent(cur) : "");
     a.textContent = "› この世界に、行けます";
+    // まだ入ったことのない世界なら、点滅させて目立たせる
+    var t = {};
+    try { t = JSON.parse(localStorage.getItem("transit")) || {}; } catch (e) {}
+    if (cur && (t.visited || []).indexOf(cur) < 0 && !(t.ends || {})[cur]) p.className += " is-new";
     p.appendChild(a);
     wrap.parentNode.insertBefore(p, wrap.nextSibling);
   }

@@ -205,6 +205,9 @@ def page(*, title, description, path, body, og_type="website", jsonld=None, noin
       var p = document.querySelector(".footer-end"), a = document.createElement("a");
       a.href = "{BASE_PATH}/transit/"; a.className = "footer-transit"; a.textContent = p.textContent; a.title = "分岐点";
       p.textContent = ""; p.appendChild(a);
+      // 一度でも分岐点に入ったことがあれば、作品一覧のトップにも入口を出す
+      var entry = document.querySelector(".transit-entry");
+      if (entry && localStorage.getItem("transit")) entry.hidden = false;
     }})();
   </script>
 </body>
@@ -492,6 +495,7 @@ def build():
       <h1 class="hero-title">{esc(site['title'])}</h1>
       <p class="hero-desc">{esc(site['description'])}</p>
       <p class="hero-actions">{RANDOM_BUTTON}<span class="mono read-count" hidden></span><button type="button" class="read-reset mono" hidden>すべて未読に戻す</button></p>
+      <p class="transit-entry mono" hidden><a href="{BASE_PATH}/transit/">› 分岐点へ</a></p>
     </section>
     <h2 class="section-label mono">STORIES</h2>
     <form class="finder" role="search" onsubmit="return false">
